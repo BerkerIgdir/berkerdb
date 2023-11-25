@@ -13,6 +13,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 
+
+import static org.berkerdb.db.file.Page.BLOCK_SIZE;
+
 public class FileManager {
 
     private static final AtomicLong blockWriteCount = new AtomicLong();
@@ -51,7 +54,7 @@ public class FileManager {
         try {
             final var channel = getFileChannel(block.fileName());
             byteBuffer.clear();
-            channel.read(byteBuffer, (long) block.blockNumber() * Page.BLOCK_SIZE);
+            channel.read(byteBuffer, (long) block.blockNumber() * BLOCK_SIZE);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -62,7 +65,7 @@ public class FileManager {
         try {
             final var channel = getFileChannel(block.fileName());
             byteBuffer.rewind();
-            channel.write(byteBuffer, (long) block.blockNumber() * Page.BLOCK_SIZE);
+            channel.write(byteBuffer, (long) block.blockNumber() * BLOCK_SIZE);
             blockWriteCount.incrementAndGet();
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -73,9 +76,9 @@ public class FileManager {
         try {
             final var channel = getFileChannel(fileName);
             final var fileSize = channel.size();
-            final var lastBlockNum = fileSize / Page.BLOCK_SIZE;
+            final var lastBlockNum = fileSize / BLOCK_SIZE;
             byteBuffer.rewind();
-            channel.write(byteBuffer, lastBlockNum * Page.BLOCK_SIZE);
+            channel.write(byteBuffer, lastBlockNum * BLOCK_SIZE);
             blockWriteCount.incrementAndGet();
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -108,5 +111,9 @@ public class FileManager {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public int lastBlockNum(final String fileName) {
+        return (int) (getFileSize(fileName) / BLOCK_SIZE);
     }
 }

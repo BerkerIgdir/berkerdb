@@ -1,4 +1,4 @@
-package org.db.file;
+package org.berkerdb.db.file;
 
 import org.berkerdb.db.file.Block;
 import org.berkerdb.db.file.FileManager;
@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -35,7 +36,6 @@ public class PageTest {
 
     @Test
     public void pageFundamentalFunctionTest() {
-        final FileManager fileManager = new FileManager(test);
         final Page page = new Page();
         final Block block = new Block(testFile, 0);
         final int testVal = 555;
@@ -44,15 +44,17 @@ public class PageTest {
         page.setInt(20, testVal);
         page.setBool(25, false);
         page.setByteArray(26, test.getBytes());
+        page.setByteArrayToMemory(0,test.getBytes());
 
         page.write(block);
         page.read(block);
+
         assertEquals(testVal, page.getInt(20));
         assertEquals(test, page.getStr(0));
         assertEquals(test, new String(page.getByteArray(26)));
         assertFalse(page.getBool(25));
+        assertEquals(test,new String(page.getByteArrayFromMemory(0)));
     }
-
 
     //    @Test
     public void fileManagerMultiThreadedAccess() throws InterruptedException {
