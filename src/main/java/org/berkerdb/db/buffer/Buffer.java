@@ -3,47 +3,79 @@ package org.berkerdb.db.buffer;
 import org.berkerdb.db.file.Block;
 import org.berkerdb.db.file.Page;
 
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-
 public class Buffer {
-    private final Page page = new Page();
-    private final AtomicInteger numberOfPins = new AtomicInteger(0);
-    private final AtomicReference<Block> currentBlock = new AtomicReference<>();
-    private final AtomicLong modifiedBy = new AtomicLong(-1);
+    final Page page = new Page();
 
-    private final AtomicLong lastLogLsn = new AtomicLong(0);
+    private long tx = -1;
+    private long lastLogLsn;
+    private Block currentBlock;
+    private int numberOfPins;
 
     public void setString(final String s, final int off, final long tx, final long lsn) {
         if (lsn < 0) {
             return;
         }
         page.setStr(off, s);
-        modifiedBy.set(tx);
-        lastLogLsn.set(lsn);
+        this.tx = tx;
+        this.lastLogLsn = lsn;
+    }
+
+    public String getString(final int off) {
+        return page.getStr(off);
+    }
+
+    public void append(final String s, final long tx, final long lsn) {
+        if (lsn < 0) {
+            return;
+        }
+        page.append(s);
+        this.tx = tx;
+        this.lastLogLsn = lsn;
+    }
+
+    void assignNew(final String fileName) {
+        flush();
+        final int lastBlockNum = page.lastBlockNum(fileName);
+        final Block currBlock = new Block(fileName, lastBlockNum);
+        page.read(currBlock);
+        this.currentBlock = currBlock;
+        numberOfPins = 0;
+    }
+
+    public void flush(final long tx) {
+        if (this.tx <= tx) {
+            page.write(currentBlock);
+        }
+    }
+
+    void flush() {
+        if (this.tx >= 0) {
+            page.write(currentBlock);
+        }
+        this.tx = -1;
     }
 
     void assignToBlock(final Block block) {
-        final Block curBlock = currentBlock.get();
-        currentBlock.updateAndGet(_ -> block);
-        page.read(currentBlock.get());
-        numberOfPins.updateAndGet(_ -> 0);
+        flush();
+        page.read(block);
+        this.currentBlock = block;
+
+        numberOfPins = 0;
     }
 
-    public void pin() {
-        numberOfPins.incrementAndGet();
+    void pin() {
+        numberOfPins++;
     }
 
-    public void unpin() {
-        numberOfPins.decrementAndGet();
+     void unpin() {
+        numberOfPins--;
     }
 
-    public boolean isPinned() {
-        return numberOfPins.get() > 0;
+    boolean isPinned() {
+        return numberOfPins > 0;
     }
 
-    public Block getCurrentBlock() {
-        return currentBlock.get();
+    Block getCurrentBlock() {
+        return currentBlock;
     }
 }

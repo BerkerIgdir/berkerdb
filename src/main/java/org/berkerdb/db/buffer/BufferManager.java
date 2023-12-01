@@ -7,16 +7,16 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 public class BufferManager {
-    private final Buffer[] buffers;
+    private final Buffer[] bufferPool;
 
-    private final int STANDART_WAIT_TIME = 10;
+    private final long STANDART_WAIT_TIME = 10;
     private long numOfAvailableBuffer;
 
     public BufferManager(final int bufferCount) {
-        this.buffers = new Buffer[bufferCount];
+        this.bufferPool = new Buffer[bufferCount];
 
-        for (int i = 0; i < buffers.length; i++) {
-            buffers[i] = new Buffer();
+        for (int i = 0; i < bufferPool.length; i++) {
+            bufferPool[i] = new Buffer();
         }
 
         numOfAvailableBuffer = bufferCount;
@@ -27,8 +27,9 @@ public class BufferManager {
 
         final long startTime = System.currentTimeMillis();
 
-        while (buffer == null && !waitTimeReached(startTime)) {
+        while (buffer == null && waitTimeReached(startTime)) {
             try {
+                System.out.println("Thread " + Thread.currentThread().threadId() + " going into waiting");
                 wait(TimeUnit.SECONDS.toMillis(STANDART_WAIT_TIME));
                 buffer = getBlock(block);
             } catch (InterruptedException e) {
@@ -36,11 +37,32 @@ public class BufferManager {
             }
         }
 
-        return Optional.ofNullable(buffer).orElseThrow(RuntimeException::new);
+        return Optional.ofNullable(buffer).orElseThrow(BufferPoolFullException::new);
+    }
+
+    public synchronized Buffer pinNew(final String fileName) {
+        Buffer buffer = getUnpinnedBuffer();
+
+        final long startTime = System.currentTimeMillis();
+
+        while (buffer == null && waitTimeReached(startTime)) {
+            try {
+                wait(TimeUnit.SECONDS.toMillis(STANDART_WAIT_TIME));
+                buffer = getUnpinnedBuffer();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        if (buffer != null) {
+            buffer.assignNew(fileName);
+            numOfAvailableBuffer--;
+            return buffer;
+        }
+        throw new BufferPoolFullException();
     }
 
     public synchronized void unpin(final Block block) {
-        for (Buffer buffer : buffers) {
+        for (Buffer buffer : bufferPool) {
             if (buffer.isPinned() && buffer.getCurrentBlock().equals(block)) {
                 buffer.unpin();
                 if (!buffer.isPinned()) {
@@ -56,14 +78,24 @@ public class BufferManager {
 
         if (buffer != null) {
             numOfAvailableBuffer--;
+            buffer.pin();
             return buffer;
         } else {
-            for (Buffer buff : buffers) {
-                if (!buff.isPinned()) {
-                    buff.assignToBlock(block);
-                    numOfAvailableBuffer--;
-                    return buff;
-                }
+            Buffer buff = getUnpinnedBuffer();
+            if (buff != null) {
+                buff.assignToBlock(block);
+                numOfAvailableBuffer--;
+                buff.pin();
+                return buff;
+            }
+        }
+        return null;
+    }
+
+    private Buffer getUnpinnedBuffer() {
+        for (Buffer buff : bufferPool) {
+            if (!buff.isPinned()) {
+                return buff;
             }
         }
         return null;
@@ -74,12 +106,12 @@ public class BufferManager {
     }
 
     private boolean waitTimeReached(final long startTimeMillis) {
-        return System.currentTimeMillis() - startTimeMillis > TimeUnit.SECONDS.toMillis(STANDART_WAIT_TIME);
+        return System.currentTimeMillis() - startTimeMillis <= TimeUnit.SECONDS.toMillis(STANDART_WAIT_TIME);
     }
 
 
     private Buffer findExistingBlock(final Block block) {
-        for (Buffer buffer : buffers) {
+        for (Buffer buffer : bufferPool) {
             if (buffer.getCurrentBlock() != null && buffer.getCurrentBlock().equals(block)) {
                 return buffer;
             }

@@ -65,7 +65,12 @@ public class FileManager {
         try {
             final var channel = getFileChannel(block.fileName());
             byteBuffer.rewind();
-            channel.write(byteBuffer, (long) block.blockNumber() * BLOCK_SIZE);
+            final int writtenByte = channel.write(byteBuffer, (long) block.blockNumber() * BLOCK_SIZE);
+
+            if (writtenByte < BLOCK_SIZE) {
+                throw new IOException();
+            }
+
             blockWriteCount.incrementAndGet();
         } catch (IOException e) {
             throw new RuntimeException(e);

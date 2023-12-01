@@ -6,6 +6,7 @@ public class BerkerDB {
 
     private final FileManager fileManager;
 
+
     public BerkerDB(String dbName) {
         fileManager = new FileManager(dbName);
     }

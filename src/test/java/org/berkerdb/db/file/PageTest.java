@@ -1,8 +1,6 @@
 package org.berkerdb.db.file;
 
-import org.berkerdb.db.file.Block;
-import org.berkerdb.db.file.FileManager;
-import org.berkerdb.db.file.Page;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -10,7 +8,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Instant;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
