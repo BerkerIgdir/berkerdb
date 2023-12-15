@@ -10,6 +10,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.LinkedList;
+
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -39,11 +41,11 @@ public class BufferMgrTest {
 
     @Test
     public void fundamentalBehaviourTest() {
-        final BufferManager bufferManager = new BufferManager(BUFFER_COUNT);
+        final NaiveBufferManager naiveBufferManager = new NaiveBufferManager(BUFFER_COUNT);
         final Block block = new Block(TEST_TABLE, 1);
         final LogManager logManager = new LogManager();
 
-        final Buffer buffer = bufferManager.pin(block);
+        final Buffer buffer = naiveBufferManager.pin(block);
 
         final long tx = 0L;
         final long lsn = logManager.append("testLog".getBytes());
@@ -58,11 +60,11 @@ public class BufferMgrTest {
 
     @Test
     public void pinNewTest() {
-        final BufferManager bufferManager = new BufferManager(BUFFER_COUNT);
+        final NaiveBufferManager naiveBufferManager = new NaiveBufferManager(BUFFER_COUNT);
         final String fileName = TEST_TABLE;
         final LogManager logManager = new LogManager();
 
-        final Buffer buffer = bufferManager.pinNew(TEST_TABLE);
+        final Buffer buffer = naiveBufferManager.pinNew(TEST_TABLE);
 
         final long tx = 0L;
         final long lsn = logManager.append("testLog".getBytes());
@@ -70,13 +72,38 @@ public class BufferMgrTest {
 
         buffer.setString(TEST, 0, tx, lsn);
         buffer.flush(tx);
-        
+
         assertEquals(TEST, buffer.getString(0));
+    }
+
+
+    @Test
+    public void unpinnedBufferDifferentAlgorithmsTest() {
+        final var logManager = new LogManager();
+        final var lruBufferManager = new LRUBufferManager(BUFFER_COUNT);
+
+        final var checkStack = new LinkedList<Buffer>();
+
+        for (int i = 0; i < BUFFER_COUNT; i++) {
+            final var block = new Block(TEST_TABLE, i);
+            final var buff = lruBufferManager.pin(block);
+            final var demoVal = "DEMO TEXT " + i;
+            final var demoLog = "DEMO LOG " + i + " " + LocalDateTime.now();
+
+            final var lsn = logManager.append(demoLog.getBytes());
+            buff.setString(demoVal, STRING_SIZE(demoVal.length()), i, lsn);
+            lruBufferManager.unpin(block);
+            checkStack.add(buff);
+        }
+
+        final var buffer = lruBufferManager.pin(new Block(TEST_TABLE,0));
+
+        assertEquals(buffer.lastUnpinned, checkStack.getFirst().lastUnpinned);
     }
 
     @Test
     public void concurrentAccessTest() throws InterruptedException {
-        final BufferManager bufferManager = new BufferManager(BUFFER_COUNT);
+        final NaiveBufferManager naiveBufferManager = new NaiveBufferManager(BUFFER_COUNT);
         final LogManager logManager = new LogManager();
         final int threadCount = 35;
         final CountDownLatch latch = new CountDownLatch(threadCount);
@@ -88,7 +115,7 @@ public class BufferMgrTest {
             Thread.ofVirtual().start(() -> {
                 try {
                     final Block block = new Block(TEST_TABLE, randBlockNum);
-                    final Buffer buff = bufferManager.pin(block);
+                    final Buffer buff = naiveBufferManager.pin(block);
                     final String log = "Thread Id: " + Thread.currentThread().threadId() + " block no: " + block.blockNumber() + " time: " + LocalDateTime.now();
 
                     final long lsn = logManager.append(log.getBytes());
@@ -96,7 +123,7 @@ public class BufferMgrTest {
                     final int offSet = txNum * STRING_SIZE(content.length());
                     blockingQueue.add(lsn);
                     buff.setString(content, offSet, txNum, lsn);
-                    bufferManager.unpin(block);
+                    naiveBufferManager.unpin(block);
                     latch.countDown();
                 } catch (RuntimeException e) {
                     assertTrue(e instanceof BufferPoolFullException);
@@ -106,7 +133,7 @@ public class BufferMgrTest {
         }
         latch.await();
 
-        final var buff = bufferManager.pin(new Block(TEST_TABLE, 0));
+        final var buff = naiveBufferManager.pin(new Block(TEST_TABLE, 0));
         buff.flush();
 
         assertEquals(threadCount, blockingQueue.size());

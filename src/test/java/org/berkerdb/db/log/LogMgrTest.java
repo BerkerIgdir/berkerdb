@@ -1,5 +1,6 @@
 package org.berkerdb.db.log;
 
+import org.berkerdb.Main;
 import org.junit.jupiter.api.AfterEach;
 
 import org.junit.jupiter.api.Test;
@@ -31,7 +32,7 @@ public class LogMgrTest {
 
     @Test
     public void fundamentalBehaviourTest() {
-        final LogManager logManager = new LogManager();
+        final LogManager logManager = Main.DB().getLogManager();
         final String testLog = "TEST LOG";
         final String testLog_1 = "TEST LOG1";
         final String testLog_2 = "TEST LOG11";
@@ -102,9 +103,7 @@ public class LogMgrTest {
                 queue.add(lsn);
                 latch.countDown();
                 final var endTime = Instant.now();
-//                endTime.minus(endTime.toEpochMilli() - startTime.toEpochMilli(), ChronoUnit.MILLIS);
                 System.out.println(testLog + " " + (endTime.toEpochMilli() - startTime.toEpochMilli()));
-//                System.out.println(endTime);
             });
         }
 

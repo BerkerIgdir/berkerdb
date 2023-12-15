@@ -29,6 +29,7 @@ public class PageTest {
         final Path homePath = Paths.get(homeDirectory);
         final Path dirPath = homePath.resolve(test);
         Files.deleteIfExists(dirPath.resolve(testFile));
+        Files.deleteIfExists(dirPath.resolve("log_file"));
         Files.deleteIfExists(dirPath);
     }
 

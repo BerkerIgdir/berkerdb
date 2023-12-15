@@ -4,7 +4,6 @@ import org.berkerdb.db.file.Block;
 import org.berkerdb.db.file.Page;
 
 import java.util.Iterator;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static org.berkerdb.db.file.Page.BLOCK_SIZE;
 
@@ -17,7 +16,7 @@ public class LogManager implements Iterable<LogRecord> {
     private int currentPosition;
     private int currentBlockNum;
 
-    private final AtomicLong lsnCount = new AtomicLong(0);
+    private long lsnCount;
 
     public LogManager() {
         this.page = new Page();
@@ -41,7 +40,7 @@ public class LogManager implements Iterable<LogRecord> {
         currentPosition -= sizeOfRecord;
         page.setByteArray(currentPosition, bytes);
         page.setInt(LAST_POS, currentPosition);
-        return lsnCount.incrementAndGet();
+        return lsnCount++;
     }
 
     @Override
@@ -64,8 +63,8 @@ public class LogManager implements Iterable<LogRecord> {
         return page.lastBlockNum(LOG_FILE);
     }
 
-    public void flush(final int lsn) {
-        if (lsn >= lsnCount.get()) {
+    public void flush(final long lsn) {
+        if (lsn >= lsnCount) {
             flush();
         }
     }

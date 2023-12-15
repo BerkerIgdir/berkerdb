@@ -2,17 +2,21 @@ package org.berkerdb.db.buffer;
 
 import org.berkerdb.db.file.Block;
 
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Optional;
-
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
-public class BufferManager {
-    private final Buffer[] bufferPool;
+public abstract class AbstractBufferManager {
+
+    protected final Buffer[] bufferPool;
 
     private final long STANDART_WAIT_TIME = 10;
     private long numOfAvailableBuffer;
 
-    public BufferManager(final int bufferCount) {
+    public AbstractBufferManager(final int bufferCount) {
         this.bufferPool = new Buffer[bufferCount];
 
         for (int i = 0; i < bufferPool.length; i++) {
@@ -29,7 +33,6 @@ public class BufferManager {
 
         while (buffer == null && waitTimeReached(startTime)) {
             try {
-                System.out.println("Thread " + Thread.currentThread().threadId() + " going into waiting");
                 wait(TimeUnit.SECONDS.toMillis(STANDART_WAIT_TIME));
                 buffer = getBlock(block);
             } catch (InterruptedException e) {
@@ -66,6 +69,7 @@ public class BufferManager {
             if (buffer.isPinned() && buffer.getCurrentBlock().equals(block)) {
                 buffer.unpin();
                 if (!buffer.isPinned()) {
+                    buffer.lastUnpinned.getAndSet(Instant.now().toEpochMilli());
                     numOfAvailableBuffer++;
                     notifyAll();
                 }
@@ -91,8 +95,8 @@ public class BufferManager {
         }
         return null;
     }
-
-    private Buffer getUnpinnedBuffer() {
+    protected abstract Buffer getUnpinnedBuffer();
+    private Buffer getUnpinnedBufferNaive() {
         for (Buffer buff : bufferPool) {
             if (!buff.isPinned()) {
                 return buff;
@@ -100,6 +104,23 @@ public class BufferManager {
         }
         return null;
     }
+
+    //May be replaced with plain for loop due to performance concerns.
+    private Buffer getLeastRecentlyReplacedUnpinnedBuffer() {
+        return Arrays.stream(bufferPool)
+                .filter(Predicate.not(Buffer::isPinned))
+                .min(Comparator.comparing(buffer -> buffer.lastAssigned.get()))
+                .orElseThrow(RuntimeException::new);
+    }
+
+    //May be replaced with plain for loop due to performance concerns.
+    private Buffer getLeastRecentlyUnpinnedBuffer() {
+        return Arrays.stream(bufferPool)
+                .filter(Predicate.not(Buffer::isPinned))
+                .min(Comparator.comparing(buffer -> buffer.lastUnpinned.get()))
+                .orElseThrow(RuntimeException::new);
+    }
+
 
     public synchronized long getNumOfAvailableBuffer() {
         return numOfAvailableBuffer;
@@ -118,6 +139,4 @@ public class BufferManager {
         }
         return null;
     }
-
-
 }

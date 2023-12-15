@@ -1,6 +1,9 @@
 package org.berkerdb;
 
 import org.berkerdb.db.BerkerDB;
+import org.berkerdb.db.buffer.LRUBufferManager;
+import org.berkerdb.db.log.LogManager;
+
 
 public class Main {
 
@@ -15,8 +18,17 @@ public class Main {
     }
 
     public static BerkerDB DB() {
+        //TO DO: Change this to a better structured solution.
+        //This is enough for now for development purposes.
+        if (DB == null) {
+            DB = new BerkerDB("test");
+            DB.setLogManager(new LogManager());
+            DB.setBufferManager(new LRUBufferManager(400));
+            return DB;
+        }
+
         //for testing purposes
-        return new BerkerDB("test");
+        return DB;
     }
 
 }

@@ -3,6 +3,9 @@ package org.berkerdb.db.buffer;
 import org.berkerdb.db.file.Block;
 import org.berkerdb.db.file.Page;
 
+import java.time.Instant;
+import java.util.concurrent.atomic.AtomicLong;
+
 public class Buffer {
     final Page page = new Page();
 
@@ -10,11 +13,15 @@ public class Buffer {
     private long lastLogLsn;
     private Block currentBlock;
     private int numberOfPins;
+    final AtomicLong lastAssigned = new AtomicLong();
+    final AtomicLong lastUnpinned = new AtomicLong();
+
 
     public void setString(final String s, final int off, final long tx, final long lsn) {
         if (lsn < 0) {
             return;
         }
+
         page.setStr(off, s);
         this.tx = tx;
         this.lastLogLsn = lsn;
@@ -61,13 +68,14 @@ public class Buffer {
         this.currentBlock = block;
 
         numberOfPins = 0;
+        lastAssigned.getAndSet(Instant.now().toEpochMilli());
     }
 
     void pin() {
         numberOfPins++;
     }
 
-     void unpin() {
+    void unpin() {
         numberOfPins--;
     }
 

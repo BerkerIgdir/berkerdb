@@ -19,7 +19,6 @@ public class Page {
     }
 
     private final ByteBuffer buffer = ByteBuffer.allocateDirect(BLOCK_SIZE);
-
     private final MemorySegment MEMORY_BLOCK = Arena.global().allocate(BLOCK_SIZE);
 
     private final StampedLock stampedLock = new StampedLock();
@@ -129,5 +128,10 @@ public class Page {
 
     public int bufferPos() {
         return buffer.position();
+    }
+
+    public void close(){
+        MEMORY_BLOCK.unload();
+
     }
 }
