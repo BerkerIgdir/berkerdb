@@ -7,6 +7,10 @@ import org.junit.jupiter.api.Test;
 
 
 import java.io.IOException;
+import java.lang.foreign.Arena;
+import java.lang.foreign.MemoryLayout;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.ValueLayout;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -17,6 +21,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 
 import static org.berkerdb.db.log.LogManager.LOG_FILE;
+import static org.berkerdb.db.log.LogRecordMemoryLayout.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class LogMgrTest {
@@ -64,7 +69,7 @@ public class LogMgrTest {
             recCount++;
         }
         final var iterator = logManager.iterator();
-        LogRecord logRecord;
+        Record logRecord;
         int readCount = 0;
 
         while (iterator.hasNext()) {
@@ -79,6 +84,10 @@ public class LogMgrTest {
     //    @RepeatedTest(10)
     @Test
     public void concurrentAccessTest() throws InterruptedException {
+        Runtime runtime = Runtime.getRuntime();
+        long usedMemoryBefore = runtime.totalMemory() - runtime.freeMemory();
+        System.out.println("Used Memory before " + usedMemoryBefore);
+        System.out.println("Total amount of cores " + runtime.availableProcessors());
         final LogManager logManager = new LogManager();
         final int numberOfThreads = 100;
 
@@ -90,7 +99,7 @@ public class LogMgrTest {
                     final var startTime = Instant.now();
                     final String testLog = "Test Log Reading Thread: " + Thread.currentThread().threadId();
                     final var endTime = Instant.now();
-                    System.out.println(testLog + " " + (endTime.toEpochMilli() - startTime.toEpochMilli()));
+//                    System.out.println(testLog + " " + (endTime.toEpochMilli() - startTime.toEpochMilli()));
                 }
             }
         });
@@ -103,13 +112,66 @@ public class LogMgrTest {
                 queue.add(lsn);
                 latch.countDown();
                 final var endTime = Instant.now();
-                System.out.println(testLog + " " + (endTime.toEpochMilli() - startTime.toEpochMilli()));
+//                System.out.println(testLog + " " + (endTime.toEpochMilli() - startTime.toEpochMilli()));
             });
         }
 
         latch.await();
 
         assertEquals(numberOfThreads, queue.size());
+        long usedMemoryAfter = runtime.totalMemory() - runtime.freeMemory();
+        System.out.println("Memory increased: " + (usedMemoryAfter - usedMemoryBefore));
+    }
 
+    @Test
+    public void basicMemTest() {
+        Runtime runtime = Runtime.getRuntime();
+        long usedMemoryBefore = runtime.totalMemory() - runtime.freeMemory();
+        System.out.println("Used Memory before " + usedMemoryBefore);
+        System.out.println("Total amount of cores " + runtime.availableProcessors());
+        final var memLay = MemoryLayout.structLayout(
+                BASIC_LAYOUT,
+                ValueLayout.JAVA_INT.withName("OLD_VAL_LENGTH"),
+                MemoryLayout.sequenceLayout(2, ValueLayout.JAVA_CHAR).withName("FILENAME")
+        );
+
+        final var oldValLengthHand = memLay.varHandle(MemoryLayout.PathElement.groupElement("OLD_VAL_LENGTH"));
+
+        final var fileNameHand = memLay.varHandle(MemoryLayout.PathElement.groupElement("FILENAME"), MemoryLayout.PathElement.sequenceElement());
+        try (final Arena arena = Arena.ofConfined()) {
+            final MemorySegment memorySegment = arena.allocate(memLay);
+            long usedMemoryAfterMemSeg = runtime.totalMemory() - runtime.freeMemory();
+            System.out.println("Used Memory after Seg " + usedMemoryAfterMemSeg);
+            LogRecordMemoryLayout.setBasicLayout(memorySegment,
+                    123,
+                    12L,
+                    11,
+                    13,
+                    14);
+
+
+            oldValLengthHand.set(memorySegment, 1234);
+            fileNameHand.set(memorySegment, 0L, 'd');
+            fileNameHand.set(memorySegment, 1L, 'b');
+
+            final var v1 = (int) RECORD_TYPE_HANDLE.get(memorySegment);
+            final var v2 = (long) TX_NUM_HANDLE.get(memorySegment);
+            final var v3 = (int) BLOCK_NUMBER_HANDLE.get(memorySegment);
+            final var v4 = (int) FILENAME_LENGTH_HANDLE.get(memorySegment);
+            final var v5 = (int) OLD_VAL_OFF_HANDLE.get(memorySegment);
+            final var v6 = (int) oldValLengthHand.get(memorySegment);
+            final var v7 = fileNameHand.get(memorySegment, 0L);
+            final var v8 = fileNameHand.get(memorySegment, 1L);
+
+            memorySegment.byteSize();
+            long usedMemoryAfterMemSeg1 = runtime.totalMemory() - runtime.freeMemory();
+            System.out.println("Used Memory after Seg " + usedMemoryAfterMemSeg1);
+            System.out.println(" Memory Seg " + memorySegment.byteSize());
+        } catch (Exception e) {
+            throw new RuntimeException("Memory Segmentation Fault!", e);
+        }
+        long usedMemoryAfter = runtime.totalMemory() - runtime.freeMemory();
+        System.out.println("Memory increased: " + (usedMemoryAfter - usedMemoryBefore));
+        System.out.println("Memory increased: " + usedMemoryAfter);
     }
 }

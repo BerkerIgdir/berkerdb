@@ -3,12 +3,14 @@ package org.berkerdb.db.log;
 import org.berkerdb.db.file.Block;
 import org.berkerdb.db.file.Page;
 
+import java.math.BigInteger;
 import java.util.Iterator;
+import java.util.Objects;
 
 import static org.berkerdb.db.file.Page.BLOCK_SIZE;
 
 
-public class LogManager implements Iterable<LogRecord> {
+public class LogManager implements Iterable<Record> {
 
     static final int LAST_POS = 0;
     static final String LOG_FILE = "log_file";
@@ -29,6 +31,10 @@ public class LogManager implements Iterable<LogRecord> {
     }
 
     public synchronized long append(final byte[] bytes) {
+        if (Objects.isNull(bytes) || bytes.length == 0) {
+            throw new RuntimeException("Object array can not be null/empty");
+        }
+
         final int sizeOfRecord = bytes.length + Integer.BYTES;
         if (currentPosition - sizeOfRecord < 0) {
             page.append(LOG_FILE);
@@ -43,8 +49,25 @@ public class LogManager implements Iterable<LogRecord> {
         return lsnCount++;
     }
 
+    public synchronized long append(final Object[] objects) {
+        if (Objects.isNull(objects) || objects.length == 0) {
+            throw new RuntimeException("Object array can not be null/empty");
+        }
+
+        for (var o : objects) {
+            if (o instanceof String s) {
+                return append(s.getBytes());
+            }
+            if (o instanceof Integer i) {
+                return append(BigInteger.valueOf(i).toByteArray());
+            }
+            throw new RuntimeException(String.format("Object type %s not supported for logging", o.toString()));
+        }
+        return 0L;
+    }
+
     @Override
-    public Iterator<LogRecord> iterator() {
+    public Iterator<Record> iterator() {
         flush();
         return new LogIterator(new Block(LOG_FILE, currentBlockNum));
     }

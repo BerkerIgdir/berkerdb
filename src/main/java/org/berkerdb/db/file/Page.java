@@ -1,6 +1,7 @@
 package org.berkerdb.db.file;
 
 
+import java.io.Closeable;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
@@ -12,16 +13,14 @@ import java.util.concurrent.locks.StampedLock;
 import static org.berkerdb.Main.DB;
 
 public class Page {
-    public static final int BLOCK_SIZE = 400;
+    public static final int BLOCK_SIZE = 200000;
 
     public static int STRING_SIZE(int n) {
         return (int) (Integer.BYTES + n * Charset.defaultCharset().newEncoder().maxBytesPerChar());
     }
 
     private final ByteBuffer buffer = ByteBuffer.allocateDirect(BLOCK_SIZE);
-    private final MemorySegment MEMORY_BLOCK = Arena.global().allocate(BLOCK_SIZE);
 
-    private final StampedLock stampedLock = new StampedLock();
     private final FileManager fileManager = DB().getFileManager();
 
     public synchronized void read(final Block block) {
@@ -47,39 +46,7 @@ public class Page {
         return bytes;
     }
 
-    public void setByteArrayToMemory(final int off, final byte[] bytes) {
-        final long writeLock = stampedLock.writeLock();
-        try {
-            final MemorySegment sourceSegment = MemorySegment.ofArray(bytes);
-            MEMORY_BLOCK.set(ValueLayout.JAVA_INT, off, bytes.length);
-            MemorySegment.copy(sourceSegment, 0, MEMORY_BLOCK, off + Integer.BYTES, bytes.length);
-        } finally {
-            stampedLock.unlockWrite(writeLock);
-        }
-    }
 
-    public byte[] getByteArrayFromMemory(final int off) {
-        var optReadLock = stampedLock.tryOptimisticRead();
-        var byteArraySize = MEMORY_BLOCK.get(ValueLayout.JAVA_INT, off);
-        byte[] bytes = new byte[byteArraySize];
-        var byteBackedMem = MemorySegment.ofArray(bytes);
-        var sourceSlice = MEMORY_BLOCK.asSlice(off + Integer.BYTES, byteArraySize);
-        byteBackedMem.copyFrom(sourceSlice);
-        if (!stampedLock.validate(optReadLock)) {
-            optReadLock = stampedLock.readLock();
-            try {
-                //Do the exactly same things from the scratch, basically the worst case scenario :(
-                byteArraySize = MEMORY_BLOCK.get(ValueLayout.JAVA_INT, off);
-                bytes = new byte[byteArraySize];
-                byteBackedMem = MemorySegment.ofArray(bytes);
-                sourceSlice = MEMORY_BLOCK.asSlice(off + Integer.BYTES, byteArraySize);
-                byteBackedMem.copyFrom(sourceSlice);
-            } finally {
-                stampedLock.unlockRead(optReadLock);
-            }
-        }
-        return bytes;
-    }
 
 //    public void getIntArray(MemorySegment srcSeg, long srcOffsetBytes, int[] dstArr, long dstIndex, long numInts) {
 //        MemorySegment srcSegSlice = srcSeg.asSlice(srcOffsetBytes, numInts << 2);
@@ -130,8 +97,5 @@ public class Page {
         return buffer.position();
     }
 
-    public void close(){
-        MEMORY_BLOCK.unload();
 
-    }
 }

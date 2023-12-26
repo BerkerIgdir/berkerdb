@@ -33,7 +33,7 @@ public class FileManager {
         if (isExist) {
             try (final var dirStream = Files.newDirectoryStream(dir)) {
                 for (var path : dirStream) {
-                    if (path.startsWith("temp")) {
+                    if (path.startsWith("test")) {
                         Files.delete(path);
                     }
                 }
@@ -68,7 +68,7 @@ public class FileManager {
             final int writtenByte = channel.write(byteBuffer, (long) block.blockNumber() * BLOCK_SIZE);
 
             if (writtenByte < BLOCK_SIZE) {
-                throw new IOException();
+                throw new IOException("All bytes could not be written!");
             }
 
             blockWriteCount.incrementAndGet();

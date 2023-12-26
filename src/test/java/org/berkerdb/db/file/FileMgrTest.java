@@ -1,9 +1,6 @@
 package org.berkerdb.db.file;
 
 
-
-import org.berkerdb.db.file.Block;
-import org.berkerdb.db.file.FileManager;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -15,6 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
+import static org.berkerdb.db.file.Page.BLOCK_SIZE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class FileMgrTest {
@@ -54,7 +52,7 @@ public class FileMgrTest {
     public void fileManagerReadAndWriteTest() throws IOException {
 
         final Block block = new Block("test_file", 12);
-        final ByteBuffer byteBuffer = ByteBuffer.allocateDirect(400);
+        final ByteBuffer byteBuffer = ByteBuffer.allocateDirect(BLOCK_SIZE);
         byteBuffer.put("test".getBytes(StandardCharsets.UTF_8));
 
         final FileManager fileManager = new FileManager("test");

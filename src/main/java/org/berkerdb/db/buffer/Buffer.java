@@ -27,8 +27,22 @@ public class Buffer {
         this.lastLogLsn = lsn;
     }
 
+    public void setInt(final int val, final int off, final long tx, final long lsn) {
+        if (lsn < 0) {
+            return;
+        }
+
+        page.setInt(off, val);
+        this.tx = tx;
+        this.lastLogLsn = lsn;
+    }
+
     public String getString(final int off) {
         return page.getStr(off);
+    }
+
+    public int getInt(final int off) {
+        return page.getInt(off);
     }
 
     public void append(final String s, final long tx, final long lsn) {
@@ -83,7 +97,7 @@ public class Buffer {
         return numberOfPins > 0;
     }
 
-    Block getCurrentBlock() {
+    public Block getCurrentBlock() {
         return currentBlock;
     }
 }

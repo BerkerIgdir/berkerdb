@@ -56,7 +56,8 @@ public class BufferMgrTest {
 
         assertEquals(buffer.getCurrentBlock(), block);
         assertEquals(TEST, buffer.getString(0));
-    }
+
+            }
 
     @Test
     public void pinNewTest() {

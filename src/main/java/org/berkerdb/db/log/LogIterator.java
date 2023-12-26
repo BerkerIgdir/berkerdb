@@ -8,7 +8,7 @@ import java.util.Iterator;
 import static org.berkerdb.db.file.Page.BLOCK_SIZE;
 import static org.berkerdb.db.log.LogManager.LAST_POS;
 
-public class LogIterator implements Iterator<LogRecord> {
+public class LogIterator implements Iterator<Record> {
     private final Page page = new Page();
     private Block block;
     private int currentRecord;
@@ -24,20 +24,20 @@ public class LogIterator implements Iterator<LogRecord> {
     }
 
     @Override
-    public LogRecord next() {
+    public Record next() {
         if (!hasNext()) {
             return null;
         }
 
         final byte[] bytes = page.getByteArray(currentRecord);
         currentRecord += (bytes.length + Integer.BYTES);
-        System.out.println("Current Rec: " + currentRecord + " block " + block.blockNumber());
+
         if (currentRecord + bytes.length > BLOCK_SIZE && hasNext()) {
             block = new Block(block.fileName(), block.blockNumber() - 1);
             initPage();
         }
 
-        return new LogRecord(new String(bytes));
+        return new Record(new String(bytes));
     }
 
     private void initPage() {
