@@ -90,6 +90,8 @@ public class FileManager {
         }
     }
 
+
+
     private FileChannel getFileChannel(final String fileName) throws IOException {
         FileChannel fileChannel = fileNameFileChannelMap.get(fileName);
 
@@ -99,7 +101,7 @@ public class FileManager {
 
         Path filePath = dbPath.resolve(fileName);
         if (!Files.exists(filePath)) {
-            filePath = Files.createFile(filePath);
+            Files.createFile(filePath);
         }
         fileChannel = FileChannel.open(filePath, StandardOpenOption.WRITE, StandardOpenOption.READ, StandardOpenOption.SYNC);
         fileNameFileChannelMap.put(fileName, fileChannel);

@@ -100,4 +100,10 @@ public class Buffer {
     public Block getCurrentBlock() {
         return currentBlock;
     }
+
+
+    public long getTx() {
+        return tx;
+    }
+
 }

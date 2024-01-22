@@ -13,7 +13,7 @@ public abstract class AbstractBufferManager {
 
     protected final Buffer[] bufferPool;
 
-    private final long STANDART_WAIT_TIME = 10;
+    private final long STANDART_WAIT_TIME = 100;
     private long numOfAvailableBuffer;
 
     public AbstractBufferManager(final int bufferCount) {
@@ -95,7 +95,9 @@ public abstract class AbstractBufferManager {
         }
         return null;
     }
+
     protected abstract Buffer getUnpinnedBuffer();
+
     private Buffer getUnpinnedBufferNaive() {
         for (Buffer buff : bufferPool) {
             if (!buff.isPinned()) {
@@ -124,6 +126,10 @@ public abstract class AbstractBufferManager {
 
     public synchronized long getNumOfAvailableBuffer() {
         return numOfAvailableBuffer;
+    }
+
+    public synchronized void flush(final long tx) {
+        Arrays.stream(bufferPool).filter(buffer -> buffer.getTx() == tx).forEach(Buffer::flush);
     }
 
     private boolean waitTimeReached(final long startTimeMillis) {

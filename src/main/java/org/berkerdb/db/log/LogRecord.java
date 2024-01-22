@@ -6,6 +6,8 @@ import org.berkerdb.db.transaction.Transaction;
 
 import java.io.Closeable;
 
+//TO DO: All log record classes will be refactored through
+// an abstract class to reduce the amount of repetitive code they have right now.
 public interface LogRecord extends Closeable {
     LogManager logManager = Main.DB().getLogManager();
 
@@ -19,13 +21,25 @@ public interface LogRecord extends Closeable {
 
         private final int number;
 
+        public static LogType fromInt(final int type) {
+            return switch (type) {
+                case 0 -> START;
+                case 1 -> SET_INT;
+                case 2 -> SET_STRING;
+                case 3 -> COMMIT;
+                case 4 -> ROLLBACK;
+                case 5 -> CHECKPOINT;
+                default -> throw new IllegalArgumentException("Unrecognized enum type");
+            };
+        }
+
+        public int getNumber() {
+            return number;
+        }
+
         LogType(int number) {
             this.number = number;
         }
-    }
-
-    default <T> long save(final Block block, final long tx, final T oldV, final T newV){
-        return 0L;
     }
 
     LogType getLogType();
@@ -33,4 +47,6 @@ public interface LogRecord extends Closeable {
     long save();
 
     void undo(final Transaction tx);
+
+    long getTxNum();
 }

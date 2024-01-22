@@ -1,8 +1,10 @@
 package org.berkerdb.db.log;
 
 import org.berkerdb.db.file.Block;
+import org.berkerdb.db.file.LogPage;
 import org.berkerdb.db.file.Page;
 
+import java.lang.foreign.MemorySegment;
 import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.Objects;
@@ -10,18 +12,22 @@ import java.util.Objects;
 import static org.berkerdb.db.file.Page.BLOCK_SIZE;
 
 
-public class LogManager implements Iterable<Record> {
+public class LogManager implements Iterable<LogRecord> {
 
     static final int LAST_POS = 0;
     static final String LOG_FILE = "log_file";
     private final Page page;
+    //    private final LogPage logPage;
     private int currentPosition;
     private int currentBlockNum;
 
     private long lsnCount;
 
+    private long savedLastLsn = 0L;
+
     public LogManager() {
         this.page = new Page();
+//        this.logPage = new LogPage();
         currentBlockNum = page.lastBlockNum(LOG_FILE);
         currentPosition = page.getInt(LAST_POS);
         page.read(new Block(LOG_FILE, currentBlockNum));
@@ -29,6 +35,11 @@ public class LogManager implements Iterable<Record> {
             initPage();
         }
     }
+
+//    public synchronized long append(final MemorySegment memorySegment){
+//        final var logPage = new LogPage();
+//        return 0L;
+//    }
 
     public synchronized long append(final byte[] bytes) {
         if (Objects.isNull(bytes) || bytes.length == 0) {
@@ -67,19 +78,19 @@ public class LogManager implements Iterable<Record> {
     }
 
     @Override
-    public Iterator<Record> iterator() {
+    public Iterator<LogRecord> iterator() {
         flush();
         return new LogIterator(new Block(LOG_FILE, currentBlockNum));
     }
 
     private void flush() {
         page.write(new Block(LOG_FILE, currentBlockNum));
+        savedLastLsn = lsnCount;
     }
 
     private void initPage() {
         currentPosition = BLOCK_SIZE;
         page.setInt(LAST_POS, currentPosition);
-
     }
 
     public synchronized int blockCount() {
@@ -87,7 +98,7 @@ public class LogManager implements Iterable<Record> {
     }
 
     public void flush(final long lsn) {
-        if (lsn >= lsnCount) {
+        if (lsn >= savedLastLsn) {
             flush();
         }
     }

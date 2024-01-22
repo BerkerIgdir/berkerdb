@@ -13,7 +13,7 @@ public class LogRecordMemoryLayout {
 
     static final String RECORD_TYPE = "RECORD_TYPE";
     static final String BLOCK_NUMBER = "BLOCK_NUMBER";
-    static final String OLD_VAL_OFFSET = "OLD_VAL_OFFSET";
+    static final String OFFSET = "OLD_VAL_OFFSET";
     static final String TX_NUM = "TX_NUM";
     static final String FILENAME_LENGTH = "FILENAME_LENGTH";
     static final String FILENAME = "FILENAME";
@@ -21,18 +21,31 @@ public class LogRecordMemoryLayout {
     static final String NEW_VAL_LENGTH = "NEW_VAL_LENGTH";
     static final String OLD_VAL_LENGTH = "OLD_VAL_LENGTH";
     static final String OLD_VAL = "OLD_VAL";
+
+
+    static final int LOG_TYPE_OFF = 0;
+    static final int BLOCK_NUM_OFF = 4;
+    static final int FILENAME_LENGTH_OFF = 8;
+    static final int OFF_OFFSET = 12;
+    static final int TX_NUM_OFF = 16;
+    static final int OLD_VAL_OFF = 24;
+
+    //String Record
+    static final int OLD_VAL_LENGTH_OFF = 24;
+    static final int NEW_VAL_LENGTH_OFF = 28;
+
     static final MemoryLayout BASIC_LAYOUT = MemoryLayout.structLayout(
             ValueLayout.JAVA_INT.withName(RECORD_TYPE),
             ValueLayout.JAVA_INT.withName(BLOCK_NUMBER),
             ValueLayout.JAVA_INT.withName(FILENAME_LENGTH),
-            ValueLayout.JAVA_INT.withName(OLD_VAL_OFFSET),
+            ValueLayout.JAVA_INT.withName(OFFSET),
             ValueLayout.JAVA_LONG.withName(TX_NUM)
     );
     static final VarHandle RECORD_TYPE_HANDLE = BASIC_LAYOUT.varHandle(groupElement(RECORD_TYPE));
     static final VarHandle TX_NUM_HANDLE = BASIC_LAYOUT.varHandle(groupElement(TX_NUM));
     static final VarHandle BLOCK_NUMBER_HANDLE = BASIC_LAYOUT.varHandle(groupElement(BLOCK_NUMBER));
     static final VarHandle FILENAME_LENGTH_HANDLE = BASIC_LAYOUT.varHandle(groupElement(FILENAME_LENGTH));
-    static final VarHandle OLD_VAL_OFF_HANDLE = BASIC_LAYOUT.varHandle(groupElement(OLD_VAL_OFFSET));
+    static final VarHandle OLD_VAL_OFF_HANDLE = BASIC_LAYOUT.varHandle(groupElement(OFFSET));
 
     public static MemoryLayout createStringRecordMemoryLayout(final int fileNameLength, final int oldValLength, final int newValLength) {
 

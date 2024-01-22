@@ -7,9 +7,9 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.util.concurrent.locks.StampedLock;
 
+import static org.berkerdb.Main.DB;
 import static org.berkerdb.db.file.Page.BLOCK_SIZE;
 
-// Arena is confined so there is no need for locks
 //A temporary page implementation, it will replace the current one in the future.
 public class LogPage implements Closeable {
 
@@ -17,6 +17,8 @@ public class LogPage implements Closeable {
     private final MemorySegment MEMORY_BLOCK = memoryArena.allocate(BLOCK_SIZE);
 
     private final StampedLock stampedLock = new StampedLock();
+
+    private final FileManager fileManager = DB().getFileManager();
 
     public void setByteArrayToMemory(final int off, final byte[] bytes) {
         final long writeLock = stampedLock.writeLock();
@@ -50,6 +52,15 @@ public class LogPage implements Closeable {
             }
         }
         return bytes;
+    }
+
+
+    public synchronized void read(final Block block) {
+        fileManager.read(MEMORY_BLOCK.asByteBuffer(), block);
+    }
+
+    public synchronized void write(final Block block) {
+        fileManager.write(MEMORY_BLOCK.asByteBuffer(), block);
     }
 
     public void close() {
