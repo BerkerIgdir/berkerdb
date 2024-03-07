@@ -57,7 +57,7 @@ public class BufferMgrTest {
         assertEquals(buffer.getCurrentBlock(), block);
         assertEquals(TEST, buffer.getString(0));
 
-            }
+    }
 
     @Test
     public void pinNewTest() {
@@ -97,7 +97,7 @@ public class BufferMgrTest {
             checkStack.add(buff);
         }
 
-        final var buffer = lruBufferManager.pin(new Block(TEST_TABLE,0));
+        final var buffer = lruBufferManager.pin(new Block(TEST_TABLE, 0));
 
         assertEquals(buffer.lastUnpinned, checkStack.getFirst().lastUnpinned);
     }

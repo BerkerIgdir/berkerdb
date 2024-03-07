@@ -34,7 +34,7 @@ public class CheckpointLogRecord implements LogRecord {
     public CheckpointLogRecord(final long[] txNums) {
         this.MEMORY_SEGMENT = MEMORY_ARENA.allocate((long) txNums.length * Long.BYTES + Integer.BYTES);
 
-        MEMORY_SEGMENT.set(ValueLayout.JAVA_INT, LOG_TYPE_OFF, LogType.SET_INT.getNumber());
+        MEMORY_SEGMENT.set(ValueLayout.JAVA_INT, LOG_TYPE_OFF, LogType.CHECKPOINT.getNumber());
         MEMORY_SEGMENT.set(ValueLayout.JAVA_INT, TX_ARRAY_LENGTH_OFF, txNums.length);
         MemorySegment.copy(MemorySegment.ofArray(txNums), 0L, MEMORY_SEGMENT, TX_ARRAY_OFF, txNums.length);
     }

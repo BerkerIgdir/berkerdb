@@ -5,7 +5,6 @@ import org.berkerdb.db.buffer.Buffer;
 import org.berkerdb.db.file.Block;
 import org.berkerdb.db.log.*;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,7 +37,7 @@ public class RecoveryManager {
 
         try (final var logRecord = new SetStringLogRecord(block, tx.getCurrentTxNum(), off, oldVal, newVal)) {
             lsn = logRecord.save();
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
 
@@ -77,6 +76,7 @@ public class RecoveryManager {
                 }
             }
         }
+
         try (CheckpointLogRecord logRecord = new CheckpointLogRecord(new long[]{tx.getCurrentTxNum()})) {
             final long lsn = logRecord.save();
             logManager.flush(lsn);

@@ -2,13 +2,11 @@ package org.berkerdb.db.log;
 
 import org.berkerdb.db.transaction.Transaction;
 
-import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 
-import static org.berkerdb.db.log.LogRecordMemoryLayout.LOG_TYPE_OFF;
-import static org.berkerdb.db.log.LogRecordMemoryLayout.TX_NUM_OFF;
+import static org.berkerdb.db.log.LogRecordMemoryLayout.*;
 
 public class CommitLogRecord implements LogRecord {
 
@@ -20,6 +18,11 @@ public class CommitLogRecord implements LogRecord {
 
         MEMORY_SEGMENT.set(ValueLayout.JAVA_INT, LOG_TYPE_OFF,getLogType().getNumber());
         MEMORY_SEGMENT.set(ValueLayout.JAVA_LONG, TX_NUM_OFF, tx);
+    }
+
+    public CommitLogRecord(final byte[] bytes){
+        this.MEMORY_SEGMENT = MEMORY_ARENA.allocate(bytes.length);
+        MemorySegment.copy(MemorySegment.ofArray(bytes), 0, MEMORY_SEGMENT, 0, bytes.length);
     }
 
     @Override
@@ -39,7 +42,7 @@ public class CommitLogRecord implements LogRecord {
 
     @Override
     public String toString() {
-        return null;
+        return "<SET_COMMIT>";
     }
     public long getTxNum() {
         return MEMORY_SEGMENT.get(ValueLayout.JAVA_LONG, TX_NUM_OFF);

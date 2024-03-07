@@ -21,24 +21,24 @@ public class Transaction {
     private final long currentTxNum;
 
     private final RecoveryManager recoveryManager = new RecoveryManager(this);
+    private final ConcurrencyManager concurrencyManager = new ConcurrencyManager(this);
 
     //TO DO: Everything about this collection will be optimized in terms of performance.
     private final Map<Block, Buffer> blockBufferMap = new HashMap<>();
-
-    public void start() {
-        try (LogRecord logRecord = new TransactionStartLogRecord(TX_NUM.get())) {
-            logRecord.save();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     public Transaction() {
         this.currentTxNum = TX_NUM.incrementAndGet();
     }
 
     public void pin(final Block block) {
-        blockBufferMap.put(block, bufferManager.pin(block));
+
+        try (LogRecord logRecord = new TransactionStartLogRecord(TX_NUM.get())) {
+            logRecord.save();
+            blockBufferMap.put(block, bufferManager.pin(block));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     public void unpin(final Block block) {
@@ -47,12 +47,13 @@ public class Transaction {
     }
 
     public void setInt(final Block block, final int val, final int off) {
-        final Buffer buffer = blockBufferMap.getOrDefault(block, bufferManager.pin(block));
+        final Buffer buffer = blockBufferMap.get(block);
 
         if (buffer == null) {
             throw new RuntimeException("Buffer can not be reached without pinning");
         }
 
+        concurrencyManager.getXLock(block);
         final int oldVal = buffer.getInt(off);
 
         final long lsn;
@@ -62,10 +63,11 @@ public class Transaction {
         }
 
         buffer.setInt(val, off, currentTxNum, lsn);
+        concurrencyManager.xRelease(block);
     }
 
     public void setStr(final Block block, final String val, final int off) {
-        final Buffer buffer = blockBufferMap.getOrDefault(block, bufferManager.pin(block));
+        final Buffer buffer = blockBufferMap.get(block);
 
         if (buffer == null) {
             throw new RuntimeException("Buffer can not be reached without pinning");
@@ -75,8 +77,6 @@ public class Transaction {
 
         try (SetStringLogRecord logRecord = new SetStringLogRecord(block, currentTxNum, off, buffer.getString(off), val)) {
             lsn = logRecord.save();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
 
         buffer.setString(val, off, currentTxNum, lsn);
@@ -87,9 +87,12 @@ public class Transaction {
     }
 
     public int getInt(final Block block, final int off) {
+        concurrencyManager.getSharedLock(block);
         final Buffer buffer = blockBufferMap.getOrDefault(block, bufferManager.pin(block));
 
-        return buffer.getInt(off);
+        final int val = buffer.getInt(off);
+        concurrencyManager.sRelease(block);
+        return val;
     }
 
     public String getStr(final Block block, final int off) {
@@ -105,11 +108,13 @@ public class Transaction {
 
     public void commit() {
         recoveryManager.commit();
-        blockBufferMap.keySet().forEach(bufferManager::unpin);
+        blockBufferMap.keySet().forEach(block -> {
+            blockBufferMap.get(block).flush(currentTxNum);
+            bufferManager.unpin(block);
+        });
     }
 
     public void rollBack() {
-
         blockBufferMap.keySet().forEach(bufferManager::unpin);
     }
 
@@ -117,7 +122,7 @@ public class Transaction {
         return currentTxNum;
     }
 
-    void flush(){
+    void flush() {
         bufferManager.flush(currentTxNum);
     }
 

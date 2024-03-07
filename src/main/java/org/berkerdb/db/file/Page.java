@@ -28,7 +28,7 @@ public class Page {
     }
 
     public synchronized void write(final Block block) {
-        fileManager.write(buffer, block);
+         fileManager.write(buffer, block);
     }
 
     public synchronized void setByteArray(final int off, final byte[] bytes) {

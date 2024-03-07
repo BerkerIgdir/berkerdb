@@ -18,12 +18,18 @@ public class TransactionStartLogRecord implements LogRecord {
     private final MemorySegment MEMORY_SEGMENT;
 
 
-    public TransactionStartLogRecord(final long tx){
+    public TransactionStartLogRecord(final long tx) {
         this.MEMORY_SEGMENT = MEMORY_ARENA.allocate(Integer.SIZE + Long.BYTES);
 
-        MEMORY_SEGMENT.set(ValueLayout.JAVA_INT, LOG_TYPE_OFF,getLogType().getNumber());
+        MEMORY_SEGMENT.set(ValueLayout.JAVA_INT, LOG_TYPE_OFF, getLogType().getNumber());
         MEMORY_SEGMENT.set(ValueLayout.JAVA_LONG, TX_NUM_OFF, tx);
     }
+
+    public TransactionStartLogRecord(final byte[] bytes) {
+        this.MEMORY_SEGMENT = MEMORY_ARENA.allocate(bytes.length);
+        MemorySegment.copy(MemorySegment.ofArray(bytes), 0, MEMORY_SEGMENT, 0, bytes.length);
+    }
+
     @Override
     public LogType getLogType() {
         return LogType.START;

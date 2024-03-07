@@ -4,6 +4,7 @@ import org.berkerdb.db.buffer.AbstractBufferManager;
 
 import org.berkerdb.db.file.FileManager;
 import org.berkerdb.db.log.LogManager;
+import org.berkerdb.db.transaction.LockTable;
 
 public class BerkerDB {
 
@@ -13,6 +14,7 @@ public class BerkerDB {
     private AbstractBufferManager bufferManager;
     private LogManager logManager;
 
+    private final LockTable lockTable = new LockTable();
 
     public BerkerDB(final String dbName) {
         fileManager = new FileManager(dbName);
@@ -38,4 +40,7 @@ public class BerkerDB {
         return logManager;
     }
 
+    public LockTable getLockTable() {
+        return lockTable;
+    }
 }

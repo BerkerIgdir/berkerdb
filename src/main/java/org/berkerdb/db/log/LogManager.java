@@ -1,10 +1,8 @@
 package org.berkerdb.db.log;
 
 import org.berkerdb.db.file.Block;
-import org.berkerdb.db.file.LogPage;
 import org.berkerdb.db.file.Page;
 
-import java.lang.foreign.MemorySegment;
 import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.Objects;
@@ -57,7 +55,7 @@ public class LogManager implements Iterable<LogRecord> {
         currentPosition -= sizeOfRecord;
         page.setByteArray(currentPosition, bytes);
         page.setInt(LAST_POS, currentPosition);
-        return lsnCount++;
+        return ++lsnCount;
     }
 
     public synchronized long append(final Object[] objects) {

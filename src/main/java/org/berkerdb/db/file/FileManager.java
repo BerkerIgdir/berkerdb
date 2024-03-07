@@ -38,13 +38,13 @@ public class FileManager {
                     }
                 }
                 dbPath = dir;
-            } catch (IOException e) {
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         } else {
             try {
                 dbPath = Files.createDirectories(dir);
-            } catch (IOException e) {
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
@@ -55,7 +55,7 @@ public class FileManager {
             final var channel = getFileChannel(block.fileName());
             byteBuffer.clear();
             channel.read(byteBuffer, (long) block.blockNumber() * BLOCK_SIZE);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
@@ -72,7 +72,7 @@ public class FileManager {
             }
 
             blockWriteCount.incrementAndGet();
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
@@ -85,7 +85,7 @@ public class FileManager {
             byteBuffer.rewind();
             channel.write(byteBuffer, lastBlockNum * BLOCK_SIZE);
             blockWriteCount.incrementAndGet();
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
@@ -95,7 +95,7 @@ public class FileManager {
     private FileChannel getFileChannel(final String fileName) throws IOException {
         FileChannel fileChannel = fileNameFileChannelMap.get(fileName);
 
-        if (Objects.nonNull(fileChannel)) {
+        if (Objects.nonNull(fileChannel) && fileChannel.isOpen()) {
             return fileChannel;
         }
 
@@ -103,6 +103,7 @@ public class FileManager {
         if (!Files.exists(filePath)) {
             Files.createFile(filePath);
         }
+
         fileChannel = FileChannel.open(filePath, StandardOpenOption.WRITE, StandardOpenOption.READ, StandardOpenOption.SYNC);
         fileNameFileChannelMap.put(fileName, fileChannel);
         return fileChannel;
@@ -120,7 +121,7 @@ public class FileManager {
         }
     }
 
-    public int lastBlockNum(final String fileName) {
+    public synchronized int lastBlockNum(final String fileName) {
         return (int) (getFileSize(fileName) / BLOCK_SIZE);
     }
 }
