@@ -28,15 +28,17 @@ public class CheckpointLogRecord implements LogRecord {
 
     @Override
     public long save() {
-        return logManager.append(TEMPLATE.getBytes());
+        return logManager.append(MEMORY_SEGMENT.toArray(ValueLayout.JAVA_BYTE));
     }
 
     public CheckpointLogRecord(final long[] txNums) {
-        this.MEMORY_SEGMENT = MEMORY_ARENA.allocate((long) txNums.length * Long.BYTES + Integer.BYTES);
+        this.MEMORY_SEGMENT = MEMORY_ARENA.allocate((long) txNums.length * Long.BYTES + Integer.BYTES + Integer.BYTES);
 
+        //Log Type
         MEMORY_SEGMENT.set(ValueLayout.JAVA_INT, LOG_TYPE_OFF, LogType.CHECKPOINT.getNumber());
+        //Array Length
         MEMORY_SEGMENT.set(ValueLayout.JAVA_INT, TX_ARRAY_LENGTH_OFF, txNums.length);
-        MemorySegment.copy(MemorySegment.ofArray(txNums), 0L, MEMORY_SEGMENT, TX_ARRAY_OFF, txNums.length);
+        MemorySegment.copy(MemorySegment.ofArray(txNums), 0L, MEMORY_SEGMENT, TX_ARRAY_OFF, (long) txNums.length * Long.BYTES);
     }
 
     //TO DO: Test it!
@@ -62,5 +64,10 @@ public class CheckpointLogRecord implements LogRecord {
     @Override
     public void close() {
         MEMORY_ARENA.close();
+    }
+
+    @Override
+    public String toString() {
+        return TEMPLATE;
     }
 }

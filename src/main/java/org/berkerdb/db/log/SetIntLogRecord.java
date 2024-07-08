@@ -32,7 +32,7 @@ public class SetIntLogRecord implements LogRecord {
         MEMORY_SEGMENT.set(ValueLayout.JAVA_INT, OLD_VAL_OFF, oldVal);
         MEMORY_SEGMENT.set(ValueLayout.JAVA_INT, NEW_VAL_OFF, newVal);
 
-        MEMORY_SEGMENT.setUtf8String(FILENAME_OFF, new String(block.fileName().getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8));
+        MEMORY_SEGMENT.setString(FILENAME_OFF, new String(block.fileName().getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8));
     }
 
     public SetIntLogRecord(final byte[] bytes) {
@@ -66,7 +66,7 @@ public class SetIntLogRecord implements LogRecord {
     }
 
     public String getFilename() {
-        return MEMORY_SEGMENT.getUtf8String(FILENAME_OFF);
+        return MEMORY_SEGMENT.getString(FILENAME_OFF);
     }
 
     public int getOff() {
@@ -89,7 +89,7 @@ public class SetIntLogRecord implements LogRecord {
 
     @Override
     public String toString() {
-        return STR."<SET_INT \{MEMORY_SEGMENT.getUtf8String(FILENAME_OFF)}, \{MEMORY_SEGMENT.get(ValueLayout.JAVA_INT, BLOCK_NUM_OFF)}, \{MEMORY_SEGMENT.get(ValueLayout.JAVA_LONG, TX_NUM_OFF)},\{MEMORY_SEGMENT.get(ValueLayout.JAVA_INT, OFF_OFFSET)}, \{MEMORY_SEGMENT.get(ValueLayout.JAVA_INT, OLD_VAL_OFF)},\{MEMORY_SEGMENT.get(ValueLayout.JAVA_INT, NEW_VAL_OFF)}>";
+        return STR."<SET_INT \{MEMORY_SEGMENT.getString(FILENAME_OFF)}, \{MEMORY_SEGMENT.get(ValueLayout.JAVA_INT, BLOCK_NUM_OFF)}, \{MEMORY_SEGMENT.get(ValueLayout.JAVA_LONG, TX_NUM_OFF)},\{MEMORY_SEGMENT.get(ValueLayout.JAVA_INT, OFF_OFFSET)}, \{MEMORY_SEGMENT.get(ValueLayout.JAVA_INT, OLD_VAL_OFF)},\{MEMORY_SEGMENT.get(ValueLayout.JAVA_INT, NEW_VAL_OFF)}>";
     }
 
     @Override

@@ -4,6 +4,7 @@ import org.berkerdb.db.file.Block;
 import org.berkerdb.db.file.Page;
 
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.Objects;
 
@@ -28,6 +29,10 @@ public class LogManager implements Iterable<LogRecord> {
 //        this.logPage = new LogPage();
         currentBlockNum = page.lastBlockNum(LOG_FILE);
         currentPosition = page.getInt(LAST_POS);
+
+        if (currentPosition == 0 && currentBlockNum > 0) {
+            currentBlockNum--;
+        }
         page.read(new Block(LOG_FILE, currentBlockNum));
         if (page.getFileSize(LOG_FILE) == 0) {
             initPage();
@@ -99,6 +104,10 @@ public class LogManager implements Iterable<LogRecord> {
         if (lsn >= savedLastLsn) {
             flush();
         }
+    }
+
+    private boolean isLastBlock(final ByteBuffer byteBuffer) {
+        return byteBuffer.get(0) > Integer.BYTES;
     }
 
 }

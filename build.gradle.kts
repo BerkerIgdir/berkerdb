@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.cli.jvm.compiler.findMainClass
+
 plugins {
     id("java")
     kotlin("jvm") version "2.0.0-Beta3"
@@ -30,7 +32,8 @@ tasks.test {
     useJUnitPlatform()
     jvmArgs("--enable-preview")
     forkEvery = 1
+    maxHeapSize = "8192m"
 }
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(22)
 }

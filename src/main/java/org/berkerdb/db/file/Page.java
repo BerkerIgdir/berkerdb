@@ -1,14 +1,8 @@
 package org.berkerdb.db.file;
 
-
-import java.io.Closeable;
-import java.lang.foreign.Arena;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.locks.StampedLock;
 
 import static org.berkerdb.Main.DB;
 

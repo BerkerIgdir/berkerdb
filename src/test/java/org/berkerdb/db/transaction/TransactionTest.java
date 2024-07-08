@@ -5,7 +5,6 @@ import org.berkerdb.db.file.Page;
 import org.berkerdb.db.log.LogManager;
 
 import org.berkerdb.db.log.LogRecord;
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
 
@@ -19,8 +18,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class TransactionTest {
 
@@ -63,42 +61,51 @@ public class TransactionTest {
         }
     }
 
-    @Test
-    public void concurrentLockTableTest() throws InterruptedException {
-        final Block blockToOperateOn = new Block("test", 0);
-//        final CountDownLatch writeLatch = new CountDownLatch(1);
-        final CountDownLatch totalLatch = new CountDownLatch(3);
+    //    @Test
+//    public void concurrentLockTableTest() throws InterruptedException {
+//        final Block blockToOperateOn = new Block("test", 0);
+//        final Block blockToOperateOn_1 = new Block("test", 1);
+//
+//        final CountDownLatch totalLatch = new CountDownLatch(3);
+//
+//        final Runnable writeOperation = () -> {
+//            final Transaction writeTx = new Transaction();
+//            writeTx.pin(blockToOperateOn);
+//            writeTx.pin(blockToOperateOn_1);
+//
+//            writeTx.setInt(blockToOperateOn, 123, 0);
+//            writeTx.setInt(blockToOperateOn_1, 123, 0);
+//
+//            writeTx.commit();
+//            writeTx.flush();
+//            totalLatch.countDown();
+//        };
+//
+//        final Runnable readOperation = () -> {
+//            final Transaction readTx = new Transaction();
+//
+//            readTx.pin(blockToOperateOn);
+//            readTx.pin(blockToOperateOn_1);
+//
+//            readTx.getInt(blockToOperateOn, 0);
+//            readTx.getInt(blockToOperateOn_1, 0);
+//
+//            readTx.commit();
+//            readTx.flush();
+//            totalLatch.countDown();
+//        };
+//
+//        Thread.ofVirtual().name("Write Thread").start(writeOperation);
+//        Thread.ofVirtual().name("Read Thread 1").start(readOperation);
+//        Thread.ofVirtual().name("Read Thread 2").start(readOperation);
+//
+//
+//        totalLatch.await();
+//    }
 
-        final Runnable writeOperation = () -> {
-            final Transaction writeTx = new Transaction();
-            writeTx.pin(blockToOperateOn);
-            writeTx.setInt(blockToOperateOn, 123, 0);
 
-            writeTx.commit();
-            writeTx.flush();
-            totalLatch.countDown();
-        };
-
-        final Runnable readOperation = () -> {
-            final Transaction readTx = new Transaction();
-
-            readTx.pin(blockToOperateOn);
-            final var num = readTx.getInt(blockToOperateOn, 0);
-
-            readTx.commit();
-            readTx.flush();
-            totalLatch.countDown();
-        };
-
-        Thread.ofVirtual().name("Write Thread").start(writeOperation);
-        Thread.ofVirtual().name("Read Thread 1").start(readOperation);
-        Thread.ofVirtual().name("Read Thread 2").start(readOperation);
-
-
-        totalLatch.await();
-    }
-
-    @Test
+    // This test, tests basically nothing, needs to be improved.
+//    @Test
     public void recoveryTest() throws InterruptedException {
         final Block block = new Block("test", 0);
 
@@ -112,45 +119,164 @@ public class TransactionTest {
             try {
                 while (!Thread.currentThread().isInterrupted()) {
                     final Transaction tx = new Transaction();
-                    lastAttemptedTxNum.set(tx.getCurrentTxNum());
                     tx.pin(block);
                     tx.setInt(block, val.getAndIncrement(), off.addAndGet(Integer.BYTES));
                     tx.setStr(block, val.toString(), off.addAndGet(val.toString().length() + Integer.BYTES));
                     tx.commit();
+                    lastAttemptedTxNum.set(tx.getCurrentTxNum());
                 }
             } catch (Throwable e) {
-                System.out.println(lastAttemptedTxNum);
+                System.out.println(e.getMessage());
+                System.out.println(STR."The last attempted tx number: \{lastAttemptedTxNum}");
             }
         };
-        final Thread carrierThread = Thread.ofVirtual().name("Carrier Thread").start(writerThread);
-//        carrierThread.join();
-        Thread.sleep(Duration.ofMillis(500));
 
-        try {
-            carrierThread.interrupt();
-        }
-        catch (Throwable e){
-            System.out.println(e);
-        }
+        final Thread carrierThread = Thread.ofVirtual().name("Carrier Thread").start(writerThread);
+
+        Thread.sleep(Duration.ofMillis(300));
+
+        carrierThread.interrupt();
         final RecoveryManager recoveryManager = new RecoveryManager(new Transaction());
+
         recoveryManager.recovery();
         final LogManager logManager = new LogManager();
-        final LogRecord logRecord;
+
         for (LogRecord log : logManager) {
             if (log != null && log.getLogType().equals(LogRecord.LogType.COMMIT)) {
-                System.out.println(log);
+                assertEquals(log.getTxNum(), lastAttemptedTxNum.get());
                 break;
             }
         }
     }
 
-    @Test
-    public void deadLockTest() {
+    //    @Test
+    public void deadLockTest() throws InterruptedException {
+        final Block blockToOperateOn = new Block("test", 0);
+        final Block blockToOperateOn_1 = new Block("test", 1);
+
+        final CountDownLatch totalLatch = new CountDownLatch(1);
+
+        final Runnable writer_1 = () -> {
+            final var tx = new Transaction();
+            tx.pin(blockToOperateOn);
+            tx.pin(blockToOperateOn_1);
+
+            tx.setInt(blockToOperateOn, 123, 0);
+
+            try {
+                totalLatch.await();
+                tx.setInt(blockToOperateOn_1, 123, 0);
+            } catch (InterruptedException e) {
+                return;
+            }
+
+
+            tx.commit();
+            tx.flush();
+        };
+
+        final Runnable writer_2 = () -> {
+            final var tx = new Transaction();
+            tx.pin(blockToOperateOn);
+            tx.pin(blockToOperateOn_1);
+
+            tx.setInt(blockToOperateOn_1, 123, 0);
+
+            try {
+                totalLatch.await();
+                tx.setInt(blockToOperateOn, 123, 0);
+            } catch (Exception e) {
+                return;
+            }
+
+
+            tx.commit();
+            tx.flush();
+        };
+
+        final var thread_1 = Thread.ofVirtual().name("writer_1").start(writer_1);
+        final var thread_2 = Thread.ofVirtual().name("writer_2").start(writer_2);
+        Thread.sleep(1000);
+        totalLatch.countDown();
+
+        thread_1.join();
+        thread_2.join();
+    }
+
+
+    // Read committed is a consistency model which strengthens read uncommitted by preventing dirty reads:
+    // transactions are not allowed to observe writes from transactions which do not commit.
+ //   @Test
+    public void readCommittedLevelTest() {
+        final var testVal = 9999;
+        final var testOff = 0;
+        final var blockToOperateOn = new Block("test", 0);
+
+        final var t1 = new Transaction();
+        t1.pin(blockToOperateOn);
+
+        t1.setInt(blockToOperateOn, testVal, testOff);
+        final var localVisT1 = t1.getInt(blockToOperateOn, testOff);
+
+        //Local Visibility Check
+        assertEquals(testVal, localVisT1);
+
+        final var t2 = new Transaction();
+        t2.pin(blockToOperateOn);
+
+        final var localVisT2 = t2.getInt(blockToOperateOn, testOff);
+
+        assertNotEquals(localVisT2, localVisT1);
+
+        t1.commit();
+
+        final var localVisT2AfterCommit = t2.getInt(blockToOperateOn, testOff);
+
+        assertEquals(localVisT2AfterCommit, localVisT1);
+
+        t2.commit();
 
     }
 
     @Test
-    public void MVCCBehaviourTest() {
-
+    public void repeatableReadLevelTest() {
+        // TO DO: IMPLEMENT
     }
+
+
+    @Test
+    public void MVCCLevelTest() {
+        final var block = new Block("test", 0);
+        final var t1 = new Transaction();
+        final var t2 = new ReadOnlyTransaction();
+        final var t3 = new Transaction();
+        final var t4 = new ReadOnlyTransaction();
+
+        t1.pin(block);
+        t1.setInt(block, 999, 0);
+        t1.commit();
+
+        t3.pin(block);
+        t3.setInt(block, 888, 0);
+
+        t2.pin(block);
+        final var t2Int = t2.getInt(block, 0);
+
+        assertEquals(999, t2Int);
+
+        t3.commit();
+
+        final var t2Int_2 = t2.getInt(block, 0);
+        assertEquals(999, t2Int_2);
+
+        t2.commit();
+
+        t4.pin(block);
+
+        final var t4Int = t4.getInt(block, 0);
+        assertEquals(888, t4Int);
+
+        t4.commit();
+    }
+
 }

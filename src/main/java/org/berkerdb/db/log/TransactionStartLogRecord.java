@@ -12,7 +12,7 @@ import static org.berkerdb.db.log.LogRecordMemoryLayout.TX_NUM_OFF;
 
 public class TransactionStartLogRecord implements LogRecord {
 
-    private static final String TEMPLATE = "<START>";
+    private static final String TEMPLATE = "<START %d>";
 
     private final Arena MEMORY_ARENA = Arena.ofConfined();
     private final MemorySegment MEMORY_SEGMENT;
@@ -52,5 +52,10 @@ public class TransactionStartLogRecord implements LogRecord {
     @Override
     public void close() {
         MEMORY_ARENA.close();
+    }
+
+    @Override
+    public String toString() {
+        return TEMPLATE.replace("%d", Long.toString(getTxNum()));
     }
 }

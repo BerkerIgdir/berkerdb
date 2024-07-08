@@ -42,7 +42,7 @@ public class CommitLogRecord implements LogRecord {
 
     @Override
     public String toString() {
-        return "<SET_COMMIT>";
+        return "<SET_COMMIT %d>".replace("%d",Long.toString(getTxNum()));
     }
     public long getTxNum() {
         return MEMORY_SEGMENT.get(ValueLayout.JAVA_LONG, TX_NUM_OFF);

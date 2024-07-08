@@ -44,8 +44,8 @@ public class RecoveryManager {
         buffer.setString(newVal, off, tx.getCurrentTxNum(), lsn);
     }
 
-    public void doRollBack(final Transaction tx) {
-
+    public void doRollBack() {
+        System.out.println(STR."Rollback for Transaction \{tx.currentTxNum}");
         for (LogRecord logRecord : logManager) {
             if (logRecord.getLogType() == LogRecord.LogType.START) {
                 return;
@@ -63,6 +63,9 @@ public class RecoveryManager {
 
         //TO DO: Refactor into a switch statement maybe?
         for (var logRecord : logManager) {
+            if (logRecord == null) {
+                continue;
+            }
             if (logRecord.getLogType() == LogRecord.LogType.CHECKPOINT) {
                 return;
             }
@@ -90,11 +93,10 @@ public class RecoveryManager {
             logManager.flush(lsn);
             tx.flush();
         }
-
     }
 
     public void rollback() {
-        doRollBack(tx);
+        doRollBack();
         try (final RollbackLogRecord logRecord = new RollbackLogRecord(tx.getCurrentTxNum())) {
             final long lsn = logRecord.save();
             logManager.flush(lsn);

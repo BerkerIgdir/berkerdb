@@ -3,7 +3,6 @@ package org.berkerdb.db.log;
 import org.berkerdb.db.file.Block;
 import org.berkerdb.db.transaction.Transaction;
 
-import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
@@ -106,7 +105,7 @@ public class SetStringLogRecord implements LogRecord {
 
     @Override
     public String toString() {
-        return STR."<SET_INT \{getFilename()}, \{MEMORY_SEGMENT.get(ValueLayout.JAVA_INT, BLOCK_NUM_OFF)}, \{MEMORY_SEGMENT.get(ValueLayout.JAVA_LONG, TX_NUM_OFF)},\{MEMORY_SEGMENT.get(ValueLayout.JAVA_INT, OFF_OFFSET)}, \{MEMORY_SEGMENT.get(ValueLayout.JAVA_INT, OLD_VAL_OFF)},\{getNewVal()}>";
+        return STR."<SET_STRING \{getFilename()}, \{MEMORY_SEGMENT.get(ValueLayout.JAVA_INT, BLOCK_NUM_OFF)}, \{MEMORY_SEGMENT.get(ValueLayout.JAVA_LONG, TX_NUM_OFF)},\{MEMORY_SEGMENT.get(ValueLayout.JAVA_INT, OFF_OFFSET)}, \{MEMORY_SEGMENT.get(ValueLayout.JAVA_INT, OLD_VAL_OFF)},\{getNewVal()}>";
     }
 
     @Override

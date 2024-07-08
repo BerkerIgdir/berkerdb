@@ -15,6 +15,7 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.lang.invoke.VarHandle;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -39,94 +40,6 @@ public class LogMgrTest {
         Files.deleteIfExists(dirPath.resolve(LOG_FILE));
     }
 
-//    @Test
-//    public void fundamentalBehaviourTest() {
-//        final LogManager logManager = Main.DB().getLogManager();
-//        final String testLog = "TEST LOG";
-//        final String testLog_1 = "TEST LOG1";
-//        final String testLog_2 = "TEST LOG11";
-//
-//        logManager.append(testLog.getBytes());
-//        logManager.append(testLog_1.getBytes());
-//        logManager.append(testLog_2.getBytes());
-//
-//        final var iterator = logManager.iterator();
-//
-//        final var recordLog_2 = iterator.next();
-//        final var recordLog_1 = iterator.next();
-//        final var recordLog = iterator.next();
-//
-//        assertEquals(testLog, recordLog.record());
-//        assertEquals(testLog_1, recordLog_1.record());
-//        assertEquals(testLog_2, recordLog_2.record());
-//    }
-
-//    @Test
-//    public void logMgrBlockOverFlow() {
-//        final String testLog = "TEST LOG";
-//        final Block block = new Block("junk", 1);
-//        final LogManager logManager = Main.DB().getLogManager();
-//
-//        try (SetIntLogRecord logRecord = new SetIntLogRecord(block, 0L, 1, 0, 111)) {
-//            logRecord.save();
-//        }
-//        int recSize = testLog.length() + Integer.BYTES;
-//        int recCount = 0;
-//        while (recSize < 600) {
-//            logManager.append(testLog.getBytes());
-//            recSize += 12;
-//            recCount++;
-//        }
-//        final var iterator = logManager.iterator();
-//        Record logRecord;
-//        int readCount = 0;
-//
-//        while (iterator.hasNext()) {
-//            logRecord = iterator.next();
-//            assertEquals(testLog, logRecord.record());
-//            readCount++;
-//        }
-//
-//        assertEquals(recCount, readCount);
-//    }
-//
-//    //    @RepeatedTest(10)
-//    @Test
-//    public void concurrentAccessTest() throws InterruptedException {
-//        Runtime runtime = Runtime.getRuntime();
-//
-//        final LogManager logManager = new LogManager();
-//        final int numberOfThreads = 100;
-//
-//        final CountDownLatch latch = new CountDownLatch(numberOfThreads);
-//        final BlockingQueue<Long> queue = new ArrayBlockingQueue<>(numberOfThreads);
-//        Thread.ofVirtual().start(() -> {
-//            while (true) {
-//                for (var record : logManager) {
-//                    final var startTime = Instant.now();
-//                    final var endTime = Instant.now();
-////                    System.out.println(testLog + " " + (endTime.toEpochMilli() - startTime.toEpochMilli()));
-//                }
-//            }
-//        });
-//
-//        for (int i = 0; i < numberOfThreads; i++) {
-//            Thread.ofVirtual().start(() -> {
-//                final var startTime = Instant.now();
-//                final String testLog = "Test Log Writing Thread: " + Thread.currentThread().threadId();
-//                final var lsn = logManager.append(testLog.getBytes());
-//                queue.add(lsn);
-//                latch.countDown();
-//                final var endTime = Instant.now();
-////                System.out.println(testLog + " " + (endTime.toEpochMilli() - startTime.toEpochMilli()));
-//            });
-//        }
-//
-//        latch.await();
-//
-//        assertEquals(numberOfThreads, queue.size());
-//    }
-
     @Test
     public void basicMemTest() {
         final var memLay = MemoryLayout.structLayout(
@@ -135,26 +48,35 @@ public class LogMgrTest {
                 MemoryLayout.sequenceLayout(2, ValueLayout.JAVA_CHAR).withName("FILENAME")
         );
 
-        final var oldValLengthHand = memLay.varHandle(MemoryLayout.PathElement.groupElement("OLD_VAL_LENGTH"));
 
+        final var recType = 123;
+        final var txNum = 12L;
+        final var blockNum = 11;
+        final var fileNameLen = 13;
+        final var oldValOff = 14;
+
+
+        final var oldValLengthHand = memLay.varHandle(MemoryLayout.PathElement.groupElement("OLD_VAL_LENGTH"));
         final var fileNameHand = memLay.varHandle(MemoryLayout.PathElement.groupElement("FILENAME"), MemoryLayout.PathElement.sequenceElement());
+
         try (final Arena arena = Arena.ofConfined()) {
             final MemorySegment memorySegment = arena.allocate(memLay);
             LogRecordMemoryLayout.setBasicLayout(memorySegment,
-                    123,
-                    12L,
-                    11,
-                    13,
-                    14);
+                    recType,
+                    txNum,
+                    blockNum,
+                    fileNameLen,
+                    oldValOff);
 
 
-            oldValLengthHand.set(memorySegment, 1234);
-            fileNameHand.set(memorySegment, 0L, 'd');
-            fileNameHand.set(memorySegment, 1L, 'b');
+            oldValLengthHand.toMethodHandle(VarHandle.AccessMode.SET).invokeWithArguments(memorySegment, 0L, 1234);
+            fileNameHand.toMethodHandle(VarHandle.AccessMode.SET).invokeWithArguments(memorySegment, 0L, 0L, 'd');
+            fileNameHand.toMethodHandle(VarHandle.AccessMode.SET).invokeWithArguments(memorySegment, 0L, 1L, 'b');
+//            fileNameHand.set(memorySegment, );
+//            fileNameHand.set(memorySegment, 1L, 'b');
 
-            memorySegment.byteSize();
-        } catch (Exception e) {
-            throw new RuntimeException("Memory Segmentation Fault!", e);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
         }
     }
 

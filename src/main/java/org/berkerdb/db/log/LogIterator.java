@@ -6,10 +6,7 @@ import org.berkerdb.db.file.Page;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
-import java.lang.reflect.Array;
-import java.util.Collection;
 import java.util.Iterator;
-import java.util.Optional;
 
 import static org.berkerdb.db.file.Page.BLOCK_SIZE;
 import static org.berkerdb.db.log.LogManager.LAST_POS;
@@ -30,22 +27,20 @@ public class LogIterator implements Iterator<LogRecord> {
     }
 
     @Override
+    //TO DO: THIS LOGIC NEEDS TO BE REFACTORED IMMEDIATELY!.
     public LogRecord next() {
         if (!hasNext()) {
             return null;
         }
 
-        byte[] bytes = Optional.ofNullable(page.getByteArray(currentRecord)).orElseGet(() -> new byte[]{});
+        byte[] bytes = page.getByteArray(currentRecord);
 
-        if (bytes.length == 0) {
-            block = new Block(block.fileName(), block.blockNumber() - 1);
-            initPage();
-            bytes = page.getByteArray(currentRecord);
-        }
-        
         currentRecord += (bytes.length + Integer.BYTES);
 
         if (currentRecord + bytes.length > BLOCK_SIZE && hasNext()) {
+            if (block.blockNumber() == 0) {
+                return null;
+            }
             block = new Block(block.fileName(), block.blockNumber() - 1);
             initPage();
         }
@@ -68,6 +63,7 @@ public class LogIterator implements Iterator<LogRecord> {
                 case COMMIT -> new CommitLogRecord(bytes);
                 case SET_INT -> new SetIntLogRecord(bytes);
                 case SET_STRING -> new SetStringLogRecord(bytes);
+                case CHECKPOINT -> new CheckpointLogRecord(bytes);
                 default -> throw new IllegalArgumentException();
             };
         }

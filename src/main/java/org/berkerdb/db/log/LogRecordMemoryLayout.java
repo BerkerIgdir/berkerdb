@@ -82,12 +82,14 @@ public class LogRecordMemoryLayout {
                                       final long txNum,
                                       final int blockNum,
                                       final int fileNameLen,
-                                      final int oldValOff) {
+                                      final int oldValOff) throws Throwable {
 
-        RECORD_TYPE_HANDLE.set(memorySegment, recType);
-        TX_NUM_HANDLE.set(memorySegment, txNum);
-        BLOCK_NUMBER_HANDLE.set(memorySegment, blockNum);
-        FILENAME_LENGTH_HANDLE.set(memorySegment, fileNameLen);
-        OLD_VAL_OFF_HANDLE.set(memorySegment, oldValOff);
+            RECORD_TYPE_HANDLE.toMethodHandle(VarHandle.AccessMode.SET).invokeWithArguments(memorySegment, 0L, recType);
+            BLOCK_NUMBER_HANDLE.toMethodHandle(VarHandle.AccessMode.SET).invokeWithArguments(memorySegment, 0L, blockNum);
+            FILENAME_LENGTH_HANDLE.toMethodHandle(VarHandle.AccessMode.SET).invokeWithArguments(memorySegment, 0L, fileNameLen);
+            OLD_VAL_OFF_HANDLE.toMethodHandle(VarHandle.AccessMode.SET).invokeWithArguments(memorySegment, 0L, oldValOff);
+            TX_NUM_HANDLE.toMethodHandle(VarHandle.AccessMode.SET).invokeWithArguments(memorySegment, 0L, txNum);
+
+
     }
 }
