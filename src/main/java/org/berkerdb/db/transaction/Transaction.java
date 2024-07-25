@@ -8,8 +8,8 @@ import org.berkerdb.db.file.Block;
 import org.berkerdb.db.log.*;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Transaction {
@@ -20,25 +20,25 @@ public class Transaction {
     protected final long currentTxNum;
     protected final RecoveryManager recoveryManager = new RecoveryManager(this);
     protected final ConcurrencyManager concurrencyManager = new ConcurrencyManager(this);
+    static final AtomicBoolean isTxAllowed = new AtomicBoolean(true);
+    static final Set<Transaction> activeTxs = Collections.synchronizedSet(new HashSet<>());
 
     //TO DO: Everything about this collection will be optimized in terms of performance.
     protected final Map<Block, Buffer> blockBufferMap = new HashMap<>();
-//
-//    enum Level {
-//        READ_COMMITTED, REPEATABLE_READ, MVCC_READ, SERIALIZABLE;
-//    }
-//
-//    private final Level txLEvel;
 
-    public Transaction() {
-        this.currentTxNum = TX_NUM.incrementAndGet();
-//        this.txLEvel = Level.SERIALIZABLE;
+    public static Optional<Transaction> getNewTx() {
+        if (!isTxAllowed.get()) {
+            return Optional.empty();
+        }
+
+        final var tx = new Transaction();
+        activeTxs.add(tx);
+        return Optional.of(tx);
     }
-//
-//    public Transaction(final Level txLevel) {
-//        this.currentTxNum = TX_NUM.incrementAndGet();
-////        this.txLEvel = txLevel;
-//    }
+
+    Transaction() {
+        this.currentTxNum = TX_NUM.incrementAndGet();
+    }
 
     public void pin(final Block block) {
         try (LogRecord logRecord = new TransactionStartLogRecord(TX_NUM.get())) {
@@ -47,8 +47,8 @@ public class Transaction {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
     }
+
 
     public void unpin(final Block block) {
         bufferManager.unpin(block);
@@ -134,6 +134,7 @@ public class Transaction {
             concurrencyManager.xRelease(block);
             concurrencyManager.sRelease(block);
         });
+        activeTxs.remove(this);
     }
 
     public void rollBack() {
@@ -148,5 +149,6 @@ public class Transaction {
     void flush() {
         bufferManager.flush(currentTxNum);
     }
+
 
 }

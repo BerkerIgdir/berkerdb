@@ -13,7 +13,6 @@ public class BerkerDB {
     private final FileManager fileManager;
     private AbstractBufferManager bufferManager;
     private LogManager logManager;
-
     private final LockTable lockTable = new LockTable();
 
     public BerkerDB(final String dbName) {

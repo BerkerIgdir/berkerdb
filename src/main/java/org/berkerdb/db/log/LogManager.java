@@ -15,11 +15,11 @@ public class LogManager implements Iterable<LogRecord> {
 
     static final int LAST_POS = 0;
     static final String LOG_FILE = "log_file";
+
     private final Page page;
     //    private final LogPage logPage;
     private int currentPosition;
     private int currentBlockNum;
-
     private long lsnCount;
 
     private long savedLastLsn = 0L;

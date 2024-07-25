@@ -14,7 +14,7 @@ public class LockTable {
     //-1 represents an exclusive lock
     private final Map<Block, Integer> blockLockCountMap = new HashMap<>();
 
-    public synchronized void getSharedLock(final Block block){
+    public synchronized void getSharedLock(final Block block) {
         final long currentTime = System.currentTimeMillis();
         final int currentLockCount = Optional.ofNullable(blockLockCountMap.get(block)).orElse(0);
 

@@ -206,7 +206,7 @@ public class TransactionTest {
 
     // Read committed is a consistency model which strengthens read uncommitted by preventing dirty reads:
     // transactions are not allowed to observe writes from transactions which do not commit.
- //   @Test
+    @Test
     public void readCommittedLevelTest() {
         final var testVal = 9999;
         final var testOff = 0;
@@ -221,21 +221,31 @@ public class TransactionTest {
         //Local Visibility Check
         assertEquals(testVal, localVisT1);
 
-        final var t2 = new Transaction();
+        final var t2 = new ReadCommittedTransaction();
         t2.pin(blockToOperateOn);
 
-        final var localVisT2 = t2.getInt(blockToOperateOn, testOff);
+        final var t2Int = t2.getInt(blockToOperateOn, testOff);
 
-        assertNotEquals(localVisT2, localVisT1);
+        assertEquals(t2Int, Integer.MIN_VALUE);
 
         t1.commit();
 
-        final var localVisT2AfterCommit = t2.getInt(blockToOperateOn, testOff);
+        final var t2IntAfterCommit = t2.getInt(blockToOperateOn, testOff);
 
-        assertEquals(localVisT2AfterCommit, localVisT1);
+        assertEquals(t2IntAfterCommit, localVisT1);
 
         t2.commit();
 
+        final var t3 = new Transaction();
+        t1.pin(blockToOperateOn);
+
+        t1.setInt(blockToOperateOn, testVal - 1, testOff);
+
+
+        final var t3NonCommit = t2.getInt(blockToOperateOn, testOff);
+
+        assertEquals(t2IntAfterCommit, t3NonCommit);
+        t3.commit();
     }
 
     @Test
@@ -252,29 +262,32 @@ public class TransactionTest {
         final var t3 = new Transaction();
         final var t4 = new ReadOnlyTransaction();
 
+        final int testVal_1 = 999;
+        final int testVal_2 = 888;
+
         t1.pin(block);
-        t1.setInt(block, 999, 0);
+        t1.setInt(block, testVal_1, 0);
         t1.commit();
 
         t3.pin(block);
-        t3.setInt(block, 888, 0);
+        t3.setInt(block, testVal_2, 0);
 
         t2.pin(block);
         final var t2Int = t2.getInt(block, 0);
 
-        assertEquals(999, t2Int);
+        assertEquals(testVal_1, t2Int);
 
         t3.commit();
 
         final var t2Int_2 = t2.getInt(block, 0);
-        assertEquals(999, t2Int_2);
+        assertEquals(testVal_1, t2Int_2);
 
         t2.commit();
 
         t4.pin(block);
 
         final var t4Int = t4.getInt(block, 0);
-        assertEquals(888, t4Int);
+        assertEquals(testVal_2, t4Int);
 
         t4.commit();
     }

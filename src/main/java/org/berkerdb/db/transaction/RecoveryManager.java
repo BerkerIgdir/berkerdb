@@ -7,6 +7,7 @@ import org.berkerdb.db.log.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalInt;
 
 public class RecoveryManager {
 
@@ -42,6 +43,34 @@ public class RecoveryManager {
         }
 
         buffer.setString(newVal, off, tx.getCurrentTxNum(), lsn);
+    }
+
+    public OptionalInt getInt(final Block block, final int off) {
+        final List<Long> rollbackList = new ArrayList<>();
+        final List<Long> commitList = new ArrayList<>();
+
+        for (final var rec : logManager) {
+            if (rec instanceof CommitLogRecord commitLogRecord) {
+                commitList.add(commitLogRecord.getTxNum());
+            }
+
+            if (rec instanceof RollbackLogRecord rollbackLogRecord) {
+                rollbackList.add(rollbackLogRecord.getTxNum());
+            }
+
+            if (rec instanceof SetIntLogRecord setIntLogRecord) {
+                if (setIntLogRecord.getBlockNum() == block.blockNumber()) {
+                    if (commitList.contains(setIntLogRecord.getTxNum()) &&
+                            !rollbackList.contains(setIntLogRecord.getTxNum())) {
+                        return OptionalInt.of(setIntLogRecord.getNewVal());
+                    } else if (rollbackList.contains(setIntLogRecord.getTxNum())) {
+                        return OptionalInt.of(setIntLogRecord.getOldVal());
+                    }
+                }
+            }
+        }
+
+        return OptionalInt.empty();
     }
 
     public void doRollBack() {

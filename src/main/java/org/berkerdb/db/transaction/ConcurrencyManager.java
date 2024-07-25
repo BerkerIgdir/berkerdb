@@ -26,7 +26,6 @@ public class ConcurrencyManager {
         if (sLockBLocks.contains(block) || xLockBLocks.contains(block)) {
             return;
         }
-
         lockTable.getSharedLock(block);
         sLockBLocks.add(block);
     }
