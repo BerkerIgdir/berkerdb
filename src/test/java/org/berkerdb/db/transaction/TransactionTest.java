@@ -248,9 +248,57 @@ public class TransactionTest {
         t3.commit();
     }
 
+    // SQL-transaction T1 reads a row.
+    // SQL-transaction T2 then modifies or deletes that row and performs a COMMIT.
+    // If T1 then attempts to reread the row, it may receive the modified value or discover that the row has been deleted.
     @Test
     public void repeatableReadLevelTest() {
-        // TO DO: IMPLEMENT
+        final var testVal = 9999;
+        final var testOff = 0;
+        final var blockToOperateOn = new Block("test", 0);
+
+        final var t1 = new Transaction();
+        t1.pin(blockToOperateOn);
+
+        t1.setInt(blockToOperateOn, testVal, testOff);
+        final var localVisT1 = t1.getInt(blockToOperateOn, testOff);
+
+        //Local Visibility Check
+        assertEquals(testVal, localVisT1);
+
+        final var t2 = new RepeatableReadTransaction();
+        t2.pin(blockToOperateOn);
+
+        final var t2Int = t2.getInt(blockToOperateOn, testOff);
+
+        assertEquals(t2Int, Integer.MIN_VALUE);
+
+        t1.commit();
+
+        final var t2IntAfterCommit = t2.getInt(blockToOperateOn, testOff);
+
+        // Here is where repeatable read differs from read committed transaction.
+        assertEquals(t2IntAfterCommit, Integer.MIN_VALUE);
+
+        t2.commit();
+
+        final var t_2 = new RepeatableReadTransaction();
+        t_2.pin(blockToOperateOn);
+
+        final var t_2Int = t_2.getInt(blockToOperateOn, testOff);
+
+        assertEquals(t_2Int, testVal);
+        t_2.commit();
+
+        final var t3 = new Transaction();
+        t1.pin(blockToOperateOn);
+
+        t1.setInt(blockToOperateOn, testVal - 1, testOff);
+
+        final var t3NonCommit = t2.getInt(blockToOperateOn, testOff);
+
+        assertEquals(t2IntAfterCommit, t3NonCommit);
+        t3.commit();
     }
 
 

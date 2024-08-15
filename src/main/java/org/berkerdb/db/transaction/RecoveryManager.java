@@ -7,6 +7,7 @@ import org.berkerdb.db.log.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.OptionalInt;
 
 public class RecoveryManager {
@@ -43,6 +44,34 @@ public class RecoveryManager {
         }
 
         buffer.setString(newVal, off, tx.getCurrentTxNum(), lsn);
+    }
+
+    public Optional<String> getString(final Block block, final int off) {
+        final List<Long> rollbackList = new ArrayList<>();
+        final List<Long> commitList = new ArrayList<>();
+
+        for (final var rec : logManager) {
+            if (rec instanceof CommitLogRecord commitLogRecord) {
+                commitList.add(commitLogRecord.getTxNum());
+            }
+
+            if (rec instanceof RollbackLogRecord rollbackLogRecord) {
+                rollbackList.add(rollbackLogRecord.getTxNum());
+            }
+
+            if (rec instanceof SetStringLogRecord setStringLogRecord) {
+                if (setStringLogRecord.getBlockNum() == block.blockNumber()) {
+                    if (commitList.contains(setStringLogRecord.getTxNum()) &&
+                            !rollbackList.contains(setStringLogRecord.getTxNum())) {
+                        return Optional.of(setStringLogRecord.getNewVal());
+                    } else if (rollbackList.contains(setStringLogRecord.getTxNum())) {
+                        return Optional.of(setStringLogRecord.getOldVal());
+                    }
+                }
+            }
+        }
+
+        return Optional.empty();
     }
 
     public OptionalInt getInt(final Block block, final int off) {
