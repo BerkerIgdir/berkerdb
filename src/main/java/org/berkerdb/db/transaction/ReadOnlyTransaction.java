@@ -40,6 +40,7 @@ public class ReadOnlyTransaction extends Transaction {
             }
 
         }
+
         //No transaction needed so the record type log also must be changed.
         try (LogRecord logRecord = new TransactionStartLogRecord(TX_NUM.get())) {
             logRecord.save();

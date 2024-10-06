@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public class LockTable {
 
-    private static final long MAX_WAIT_TIME = Duration.ofSeconds(3).toMillis();
+    private static final long MAX_WAIT_TIME = Duration.ofSeconds(1).toMillis();
 
     //-1 represents an exclusive lock
     private final Map<Block, Integer> blockLockCountMap = new HashMap<>();
@@ -70,6 +70,4 @@ public class LockTable {
         blockLockCountMap.put(block, 0);
         notifyAll();
     }
-
-
 }

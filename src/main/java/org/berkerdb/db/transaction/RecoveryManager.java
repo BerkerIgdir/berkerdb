@@ -161,4 +161,8 @@ public class RecoveryManager {
             tx.flush();
         }
     }
+
+    void clearLogBuffer() {
+        logManager.clearBuffer();
+    }
 }

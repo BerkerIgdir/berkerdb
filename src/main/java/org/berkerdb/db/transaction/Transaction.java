@@ -4,19 +4,28 @@ import org.berkerdb.Main;
 import org.berkerdb.db.buffer.AbstractBufferManager;
 import org.berkerdb.db.buffer.Buffer;
 import org.berkerdb.db.file.Block;
-
-import org.berkerdb.db.log.*;
+import org.berkerdb.db.file.FileManager;
+import org.berkerdb.db.log.LogRecord;
+import org.berkerdb.db.log.SetIntLogRecord;
+import org.berkerdb.db.log.SetStringLogRecord;
+import org.berkerdb.db.log.TransactionStartLogRecord;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+
+import static org.berkerdb.db.file.Page.BLOCK_SIZE;
 
 public class Transaction {
 
     protected static final AtomicLong TX_NUM = new AtomicLong(0);
     //    private final LogManager logManager = Main.DB().getLogManager();
     protected final AbstractBufferManager bufferManager = Main.DB().getBufferManager();
+
+    // A direct injection to prevent unnecessary pinning to get the size of a specific file.
+    protected final FileManager fileManager = Main.DB().getFileManager();
     protected final long currentTxNum;
     protected final RecoveryManager recoveryManager = new RecoveryManager(this);
     protected final ConcurrencyManager concurrencyManager = new ConcurrencyManager(this);
@@ -41,7 +50,7 @@ public class Transaction {
     }
 
     public void pin(final Block block) {
-        try (LogRecord logRecord = new TransactionStartLogRecord(TX_NUM.get())) {
+        try (final LogRecord logRecord = new TransactionStartLogRecord(TX_NUM.get())) {
             logRecord.save();
             blockBufferMap.put(block, bufferManager.pin(block));
         } catch (IOException e) {
@@ -67,7 +76,7 @@ public class Transaction {
 
         final long lsn;
 
-        try (SetIntLogRecord logRecord = new SetIntLogRecord(block, currentTxNum, off, oldVal, val)) {
+        try (final SetIntLogRecord logRecord = new SetIntLogRecord(block, currentTxNum, off, oldVal, val)) {
             lsn = logRecord.save();
             buffer.setInt(val, off, currentTxNum, lsn);
         } catch (RuntimeException e) {
@@ -90,7 +99,7 @@ public class Transaction {
 
         final long lsn;
 
-        try (SetStringLogRecord logRecord = new SetStringLogRecord(block, currentTxNum, off, buffer.getString(off), val)) {
+        try (final SetStringLogRecord logRecord = new SetStringLogRecord(block, currentTxNum, off, buffer.getString(off), val)) {
             lsn = logRecord.save();
             buffer.setString(val, off, currentTxNum, lsn);
         } catch (RuntimeException e) {
@@ -146,9 +155,22 @@ public class Transaction {
         return currentTxNum;
     }
 
+    public long fileSize(final String fileName) {
+        return fileManager.getFileSize(fileName);
+    }
+
+    public long append(final String fileName) {
+        final Block dummyBlock = new Block(fileName, -1);
+        concurrencyManager.getXLock(dummyBlock);
+        final long lastBlockNum = fileManager.append(ByteBuffer.allocateDirect(BLOCK_SIZE), fileName);
+        concurrencyManager.xRelease(dummyBlock);
+        return lastBlockNum;
+    }
+
     void flush() {
         bufferManager.flush(currentTxNum);
     }
-
-
+    void clearLogBuffer(){
+        recoveryManager.clearLogBuffer();
+    }
 }

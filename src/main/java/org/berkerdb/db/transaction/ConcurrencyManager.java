@@ -9,6 +9,7 @@ import java.util.HashSet;
 
 public class ConcurrencyManager {
 
+    static int dem = 0;
     private final LockTable lockTable;
 
     //Maybe deleted in the future.
@@ -37,11 +38,13 @@ public class ConcurrencyManager {
 
         lockTable.getXLock(block);
         xLockBLocks.add(block);
+        dem++;
     }
 
     public void xRelease(final Block block) {
         lockTable.xRelease(block);
         xLockBLocks.remove(block);
+        dem--;
     }
 
     public void sRelease(final Block block) {

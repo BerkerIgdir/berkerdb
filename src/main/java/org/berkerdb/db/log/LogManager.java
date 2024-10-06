@@ -26,7 +26,6 @@ public class LogManager implements Iterable<LogRecord> {
 
     public LogManager() {
         this.page = new Page();
-//        this.logPage = new LogPage();
         currentBlockNum = page.lastBlockNum(LOG_FILE);
         currentPosition = page.getInt(LAST_POS);
 
@@ -38,11 +37,6 @@ public class LogManager implements Iterable<LogRecord> {
             initPage();
         }
     }
-
-//    public synchronized long append(final MemorySegment memorySegment){
-//        final var logPage = new LogPage();
-//        return 0L;
-//    }
 
     public synchronized long append(final byte[] bytes) {
         if (Objects.isNull(bytes) || bytes.length == 0) {
@@ -110,4 +104,9 @@ public class LogManager implements Iterable<LogRecord> {
         return byteBuffer.get(0) > Integer.BYTES;
     }
 
+    public void clearBuffer() {
+        page.clearPage();
+        currentPosition = BLOCK_SIZE;
+        lsnCount = 0;
+    }
 }

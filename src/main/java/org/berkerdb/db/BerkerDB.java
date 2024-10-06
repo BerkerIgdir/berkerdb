@@ -5,6 +5,7 @@ import org.berkerdb.db.buffer.AbstractBufferManager;
 import org.berkerdb.db.file.FileManager;
 import org.berkerdb.db.log.LogManager;
 import org.berkerdb.db.transaction.LockTable;
+import org.berkerdb.db.transaction.Transaction;
 
 public class BerkerDB {
 

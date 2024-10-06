@@ -22,7 +22,7 @@ public class Page {
     }
 
     public synchronized void write(final Block block) {
-         fileManager.write(buffer, block);
+        fileManager.write(buffer, block);
     }
 
     public synchronized void setByteArray(final int off, final byte[] bytes) {
@@ -39,15 +39,6 @@ public class Page {
         buffer.get(bytes);
         return bytes;
     }
-
-
-
-//    public void getIntArray(MemorySegment srcSeg, long srcOffsetBytes, int[] dstArr, long dstIndex, long numInts) {
-//        MemorySegment srcSegSlice = srcSeg.asSlice(srcOffsetBytes, numInts << 2);
-//        MemorySegment dstSeg = MemorySegment.ofArray(dstArr);
-//        MemorySegment dstSegSlice = dstSeg.asSlice(dstIndex << 2, numInts << 2);
-//        dstSegSlice.copyFrom(srcSegSlice);
-//    }
 
 
     public synchronized void append(final String fileName) {
@@ -91,5 +82,7 @@ public class Page {
         return buffer.position();
     }
 
-
+    public void clearPage() {
+        buffer.clear();
+    }
 }

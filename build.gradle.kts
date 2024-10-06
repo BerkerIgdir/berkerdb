@@ -20,11 +20,11 @@ dependencies {
 java {
 }
 
-tasks.compileJava{
+tasks.compileJava {
     options.compilerArgs.add(("--enable-preview"))
 }
 
-tasks.compileTestJava{
+tasks.compileTestJava {
     options.compilerArgs.add(("--enable-preview"))
 }
 

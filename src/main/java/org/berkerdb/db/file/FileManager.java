@@ -4,7 +4,6 @@ package org.berkerdb.db.file;
 import java.io.File;
 import java.io.IOException;
 
-import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.*;
@@ -88,14 +87,15 @@ public class FileManager {
         }
     }
 
-    public synchronized void append(final ByteBuffer byteBuffer, final String fileName) {
+    public synchronized long append(final ByteBuffer byteBuffer, final String fileName) {
         try {
             final var channel = getFileChannel(fileName);
             final var fileSize = channel.size();
-            final var lastBlockNum = fileSize / BLOCK_SIZE;
+            final long lastBlockNum = fileSize / BLOCK_SIZE;
             byteBuffer.rewind();
             channel.write(byteBuffer, lastBlockNum * BLOCK_SIZE);
             blockWriteCount.incrementAndGet();
+            return lastBlockNum;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -123,7 +123,7 @@ public class FileManager {
         return blockWriteCount.get();
     }
 
-    public long getFileSize(final String fileName) {
+    public synchronized long getFileSize(final String fileName) {
         try {
             return getFileChannel(fileName).size();
         } catch (IOException e) {

@@ -5,8 +5,7 @@ import org.berkerdb.db.file.Page;
 import org.berkerdb.db.log.LogManager;
 
 import org.berkerdb.db.log.LogRecord;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,8 +19,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TransactionTest {
-
 
     @AfterEach
     void cleanAfter() throws IOException {
@@ -35,16 +34,17 @@ public class TransactionTest {
     }
 
     @Test
+    @Order(1)
     public void fundamentalBehaviourTest() {
         final Transaction underTest = new Transaction();
         final Block block = new Block("test", 0);
         final int testVal = 123;
+
         underTest.pin(block);
         underTest.setInt(block, testVal, 0);
 
         underTest.setInt(block, testVal + 3, 4);
         underTest.setStr(block, "demoVal", 8);
-
         underTest.commit();
 
         final Page page = new Page();
@@ -60,48 +60,6 @@ public class TransactionTest {
             assertNotNull(record);
         }
     }
-
-    //    @Test
-//    public void concurrentLockTableTest() throws InterruptedException {
-//        final Block blockToOperateOn = new Block("test", 0);
-//        final Block blockToOperateOn_1 = new Block("test", 1);
-//
-//        final CountDownLatch totalLatch = new CountDownLatch(3);
-//
-//        final Runnable writeOperation = () -> {
-//            final Transaction writeTx = new Transaction();
-//            writeTx.pin(blockToOperateOn);
-//            writeTx.pin(blockToOperateOn_1);
-//
-//            writeTx.setInt(blockToOperateOn, 123, 0);
-//            writeTx.setInt(blockToOperateOn_1, 123, 0);
-//
-//            writeTx.commit();
-//            writeTx.flush();
-//            totalLatch.countDown();
-//        };
-//
-//        final Runnable readOperation = () -> {
-//            final Transaction readTx = new Transaction();
-//
-//            readTx.pin(blockToOperateOn);
-//            readTx.pin(blockToOperateOn_1);
-//
-//            readTx.getInt(blockToOperateOn, 0);
-//            readTx.getInt(blockToOperateOn_1, 0);
-//
-//            readTx.commit();
-//            readTx.flush();
-//            totalLatch.countDown();
-//        };
-//
-//        Thread.ofVirtual().name("Write Thread").start(writeOperation);
-//        Thread.ofVirtual().name("Read Thread 1").start(readOperation);
-//        Thread.ofVirtual().name("Read Thread 2").start(readOperation);
-//
-//
-//        totalLatch.await();
-//    }
 
 
     // This test, tests basically nothing, needs to be improved.
@@ -207,12 +165,14 @@ public class TransactionTest {
     // Read committed is a consistency model which strengthens read uncommitted by preventing dirty reads:
     // transactions are not allowed to observe writes from transactions which do not commit.
     @Test
+    @Order(2)
     public void readCommittedLevelTest() {
         final var testVal = 9999;
         final var testOff = 0;
         final var blockToOperateOn = new Block("test", 0);
 
         final var t1 = new Transaction();
+        t1.clearLogBuffer();
         t1.pin(blockToOperateOn);
 
         t1.setInt(blockToOperateOn, testVal, testOff);
@@ -241,23 +201,26 @@ public class TransactionTest {
 
         t1.setInt(blockToOperateOn, testVal - 1, testOff);
 
-
         final var t3NonCommit = t2.getInt(blockToOperateOn, testOff);
 
         assertEquals(t2IntAfterCommit, t3NonCommit);
         t3.commit();
+        t1.commit();
+        System.out.println("Read Committed Ended");
     }
 
     // SQL-transaction T1 reads a row.
     // SQL-transaction T2 then modifies or deletes that row and performs a COMMIT.
     // If T1 then attempts to reread the row, it may receive the modified value or discover that the row has been deleted.
     @Test
+    @Order(4)
     public void repeatableReadLevelTest() {
         final var testVal = 9999;
         final var testOff = 0;
         final var blockToOperateOn = new Block("test", 0);
 
         final var t1 = new Transaction();
+        t1.clearLogBuffer();
         t1.pin(blockToOperateOn);
 
         t1.setInt(blockToOperateOn, testVal, testOff);
@@ -303,6 +266,7 @@ public class TransactionTest {
 
 
     @Test
+    @Order(3)
     public void MVCCLevelTest() {
         final var block = new Block("test", 0);
         final var t1 = new Transaction();
@@ -313,6 +277,7 @@ public class TransactionTest {
         final int testVal_1 = 999;
         final int testVal_2 = 888;
 
+        t1.clearLogBuffer();
         t1.pin(block);
         t1.setInt(block, testVal_1, 0);
         t1.commit();
