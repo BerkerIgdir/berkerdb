@@ -60,16 +60,6 @@ public class FileManager {
         }
     }
 
-//    public synchronized void read(final MemorySegment memorySegment, final Block block) {
-//        try {
-//            final var channel = getFileChannel(block.fileName());
-//            channel.map(FileChannel.MapMode.READ_WRITE, (long) block.blockNumber() * BLOCK_SIZE, BLOCK_SIZE, memorySegment.)
-//            channel.read(byteBuffer, );
-//        } catch (Exception e) {
-//            throw new RuntimeException(e);
-//        }
-//    }
-
 
     public synchronized void write(final ByteBuffer byteBuffer, final Block block) {
         try {

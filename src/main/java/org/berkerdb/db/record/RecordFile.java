@@ -10,36 +10,11 @@ public class RecordFile {
 
     private static final String TABLE_FILE_EXTENSION = ".tbl";
 
-    public int getInt(final String intFieldName) {
-        return rp.getInt(currentRID.slot, intFieldName);
-    }
-
-    public String getStr(final String testStr) {
-        return rp.getString(currentRID.slot, testStr);
-    }
-
-    public void setInt(final String intFieldName, int val) {
-        rp.setInt(intFieldName, val, currentRID.slot);
-    }
-
-    public void setStr(final String strFieldName, final String val) {
-        rp.setStr(strFieldName, val, currentRID.slot);
+    public record RID(int blockNum, int slot) {
     }
 
     public RID getCurrentRID() {
         return this.currentRID;
-    }
-
-    public void delete() {
-        this.rp.deleteRecord(currentRID.slot());
-    }
-
-    public void delete(final RID rid) {
-        moveToRID(rid);
-        this.rp.deleteRecord(currentRID.slot());
-    }
-
-    public record RID(int blockNum, int slot) {
     }
 
     private RecordPage rp;
@@ -61,6 +36,22 @@ public class RecordFile {
 
         this.rp = new RecordPage(tableInfo, new Block(tableInfo.getTableName(), 0), transaction);
         this.currentRID = new RID(rp.getBlock().blockNumber(), rp.findNextUsedSlot(0));
+    }
+
+    public int getInt(final String intFieldName) {
+        return rp.getInt(currentRID.slot, intFieldName);
+    }
+
+    public String getStr(final String testStr) {
+        return rp.getString(currentRID.slot, testStr);
+    }
+
+    public void setInt(final String intFieldName, int val) {
+        rp.setInt(intFieldName, val, currentRID.slot);
+    }
+
+    public void setStr(final String strFieldName, final String val) {
+        rp.setStr(strFieldName, val, currentRID.slot);
     }
 
     // Changes pointer to the next record in the block, if there is no next record in the block then a new block is created.
@@ -117,34 +108,35 @@ public class RecordFile {
         rp.addRecord(slot);
     }
 
+    public void delete() {
+        this.rp.deleteRecord(currentRID.slot());
+    }
+
+    public void delete(final RID rid) {
+        moveToRID(rid);
+        this.rp.deleteRecord(currentRID.slot());
+    }
+
     private void moveToNextBlock() {
+        moveToBlock(currentRID.blockNum() + 1);
+    }
+
+    private void moveToBlock(final int blockNum) {
         rp.close();
         final String fileName = rp.getBlock().fileName();
-        final Block block = new Block(fileName, rp.getBlock().blockNumber() + 1);
+        // TO DO: Refactor block num to long
+        final Block block = new Block(fileName, blockNum);
         transaction.pin(block);
         rp.setBlock(block);
         rp.format();
+
         this.currentRID = new RID(block.blockNumber(), rp.findNextUsedSlot(0));
     }
 
     private void moveToANewBlock() {
-        rp.close();
-        final String fileName = rp.getBlock().fileName();
-        final long lastBlockNum = transaction.append(fileName);
-        // TO DO: Refactor block num to long
-        final Block block = new Block(fileName, (int) lastBlockNum);
-        transaction.pin(block);
-        rp.setBlock(block);
-        rp.format();
-        this.currentRID = new RID(block.blockNumber(), rp.findNextUsedSlot(0));
-    }
-
-    private void close() {
-        transaction.unpin(rp.getBlock());
-
-        final Block block = new Block(rp.getBlock().fileName(), rp.getBlock().blockNumber() + 1);
-        rp.setBlock(block);
-        transaction.pin(block);
+        final long blockNum = transaction.append(rp.getBlock().fileName());
+        // TO DO: Refactor blockNum to long in the future
+        moveToBlock((int) blockNum);
     }
 
 }

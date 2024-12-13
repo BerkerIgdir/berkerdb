@@ -1,12 +1,8 @@
 package org.berkerdb.db.log;
 
 import org.berkerdb.Main;
-import org.berkerdb.db.buffer.Buffer;
 import org.berkerdb.db.file.Block;
-import org.berkerdb.db.file.Page;
-import org.berkerdb.db.transaction.Transaction;
 import org.junit.jupiter.api.AfterEach;
-
 import org.junit.jupiter.api.Test;
 
 
@@ -19,11 +15,6 @@ import java.lang.invoke.VarHandle;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Instant;
-
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CountDownLatch;
 
 import static org.berkerdb.db.log.LogManager.LOG_FILE;
 import static org.berkerdb.db.log.LogRecordMemoryLayout.*;
@@ -72,8 +63,6 @@ public class LogMgrTest {
             oldValLengthHand.toMethodHandle(VarHandle.AccessMode.SET).invokeWithArguments(memorySegment, 0L, 1234);
             fileNameHand.toMethodHandle(VarHandle.AccessMode.SET).invokeWithArguments(memorySegment, 0L, 0L, 'd');
             fileNameHand.toMethodHandle(VarHandle.AccessMode.SET).invokeWithArguments(memorySegment, 0L, 1L, 'b');
-//            fileNameHand.set(memorySegment, );
-//            fileNameHand.set(memorySegment, 1L, 'b');
 
         } catch (Throwable e) {
             throw new RuntimeException(e);
@@ -108,7 +97,7 @@ public class LogMgrTest {
     }
 
     @Test
-    public void setStringLogRecordTest() throws IOException {
+    public void setStringLogRecordTest() {
         final Block block = new Block("junk", 1);
         final LogManager logManager = Main.DB().getLogManager();
 

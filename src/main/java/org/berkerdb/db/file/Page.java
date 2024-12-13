@@ -40,9 +40,16 @@ public class Page {
         return bytes;
     }
 
-
     public synchronized void append(final String fileName) {
         fileManager.append(buffer, fileName);
+    }
+
+    public synchronized ByteBuffer getBuffer() {
+        return buffer.duplicate();
+    }
+
+    public synchronized ByteBuffer setBuffer(final ByteBuffer newBuffer) {
+        return buffer.put(newBuffer);
     }
 
     public synchronized void setStr(int off, String val) {
@@ -85,4 +92,5 @@ public class Page {
     public void clearPage() {
         buffer.clear();
     }
+
 }

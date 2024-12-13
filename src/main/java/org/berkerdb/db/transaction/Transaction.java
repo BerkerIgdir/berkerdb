@@ -134,6 +134,19 @@ public class Transaction {
         return false;
     }
 
+    public ByteBuffer getContentOfBuffer(final Block block) {
+        concurrencyManager.getSharedLock(block);
+        final Buffer buffer = blockBufferMap.getOrDefault(block, bufferManager.pin(block));
+
+        return buffer.getBufferContent();
+    }
+
+    public ByteBuffer setContentOfBuffer(final Block block, final ByteBuffer newBuffer) {
+        concurrencyManager.getSharedLock(block);
+        final Buffer buffer = blockBufferMap.getOrDefault(block, bufferManager.pin(block));
+
+        return buffer.setBufferContent(newBuffer);
+    }
 
     public void commit() {
         recoveryManager.commit();
@@ -170,7 +183,8 @@ public class Transaction {
     void flush() {
         bufferManager.flush(currentTxNum);
     }
-    void clearLogBuffer(){
+
+    void clearLogBuffer() {
         recoveryManager.clearLogBuffer();
     }
 }

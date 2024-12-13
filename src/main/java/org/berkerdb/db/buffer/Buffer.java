@@ -3,6 +3,7 @@ package org.berkerdb.db.buffer;
 import org.berkerdb.db.file.Block;
 import org.berkerdb.db.file.Page;
 
+import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -39,6 +40,14 @@ public class Buffer {
 
     public String getString(final int off) {
         return page.getStr(off);
+    }
+
+    public ByteBuffer getBufferContent() {
+        return page.getBuffer();
+    }
+
+    public ByteBuffer setBufferContent(final ByteBuffer buffer) {
+        return page.setBuffer(buffer);
     }
 
     public int getInt(final int off) {

@@ -6,6 +6,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.lang.foreign.MemorySegment;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -32,10 +33,10 @@ public class RecordTest {
 
         final var schema = new Schema();
         final String intFieldName = "testInt";
-        final var testStr = "testStr";
+        final String testStr = "testStr";
 
         schema.addInt(intFieldName);
-        schema.addVarChar(testStr, testStr.length());
+        schema.addVarChar(testStr, 10);
 
         final var tableInfo = new TableInfo(schema, TEST_TABLE);
         final var tx = TransactionManager.newTx(TransactionManager.SupportedTxType.STANDARD);
@@ -46,8 +47,8 @@ public class RecordTest {
 
         final RecordFile.RID rid = file.getCurrentRID();
 
-        assertEquals(file.getInt(intFieldName), 0);
-        assertEquals(file.getStr(testStr), "");
+        assertEquals(0, file.getInt(intFieldName));
+        assertEquals("", file.getStr(testStr));
 
         file.setInt(intFieldName, testVal);
         file.setStr(testStr, testStr);
@@ -57,6 +58,7 @@ public class RecordTest {
 
         final boolean isNext = file.next();
         assertTrue(isNext);
+
         final RecordFile.RID currentRID = file.getCurrentRID();
         assertEquals(rid, currentRID);
 

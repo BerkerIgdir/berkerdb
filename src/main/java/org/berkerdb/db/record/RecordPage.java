@@ -25,7 +25,7 @@ public class RecordPage {
         this.layout = tableInfo;
         this.block = block;
         this.transaction = tx;
-        this.MAX_SLOT_NUM = (BLOCK_SIZE / tableInfo.slotSize) - 1;
+        this.MAX_SLOT_NUM = (BLOCK_SIZE / tableInfo.fixedSlotSize) - 1;
     }
 
     public void setString(final int slot, final String fieldName, final String val) {
@@ -33,15 +33,6 @@ public class RecordPage {
         transaction.setStr(block, val, pos);
     }
 
-    public String getString(final int slot, final String fieldName) {
-        final int pos = layout.calcFieldOff(slot, fieldName);
-        return transaction.getStr(block, pos);
-    }
-
-    public int getInt(final int slot, final String fieldName) {
-        final int pos = layout.calcFieldOff(slot, fieldName);
-        return transaction.getInt(block, pos);
-    }
 
     public void format() {
         int slot = 0;
@@ -69,6 +60,16 @@ public class RecordPage {
     public void addRecord(final int slot) {
         final int off = getSlotBeginOff(slot);
         transaction.setInt(block, UNAVAILABLE_SLOT, off);
+    }
+
+    public String getString(final int slot, final String fieldName) {
+        final int pos = layout.calcFieldOff(slot, fieldName);
+        return transaction.getStr(block, pos);
+    }
+
+    public int getInt(final int slot, final String fieldName) {
+        final int pos = layout.calcFieldOff(slot, fieldName);
+        return transaction.getInt(block, pos);
     }
 
     public void setInt(final String fieldName, final int val, final int slot) {
@@ -131,7 +132,7 @@ public class RecordPage {
     }
 
     private int getSlotBeginOff(int slot) {
-        return layout.slotSize * slot;
+        return layout.fixedSlotSize * slot;
     }
 
     private boolean isValidSlot(final int slot) {
