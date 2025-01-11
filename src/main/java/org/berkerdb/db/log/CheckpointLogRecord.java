@@ -2,13 +2,11 @@ package org.berkerdb.db.log;
 
 import org.berkerdb.db.transaction.Transaction;
 
-import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 
 import static org.berkerdb.db.log.LogRecordMemoryLayout.*;
-import static org.berkerdb.db.log.LogRecordMemoryLayout.OLD_VAL_OFF;
 
 public class CheckpointLogRecord implements LogRecord {
 

@@ -2,7 +2,6 @@ package org.berkerdb.db.log;
 
 import org.berkerdb.db.transaction.Transaction;
 
-import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;

@@ -41,7 +41,6 @@ public class RecordTest {
         final var tableInfo = new TableInfo(schema, TEST_TABLE);
         final var tx = TransactionManager.newTx(TransactionManager.SupportedTxType.STANDARD);
         final var file = new RecordFile(tableInfo, tx);
-
         file.beforeFirst();
         file.insert();
 
@@ -66,6 +65,47 @@ public class RecordTest {
         file.beforeFirst();
 
         assertFalse(file.next());
+        tx.commit();
+    }
+    @Test
+    public void variableRecordTest() {
+        final int testVal = 999;
+
+        final var schema = new Schema();
+        final String intFieldName = "testInt";
+        final String testStr = "testStr";
+
+        schema.addInt(intFieldName);
+        schema.addVarChar(testStr);
+
+        final var tableInfo = new TableInfo(schema, TEST_TABLE);
+        final var tx = TransactionManager.newTx(TransactionManager.SupportedTxType.STANDARD);
+        final var file = new RecordFile(tableInfo, tx);
+        file.beforeFirst();
+        file.insert();
+
+        final RecordFile.RID rid = file.getCurrentRID();
+
+        assertEquals(0, file.getInt(intFieldName));
+        assertEquals("", file.getStr(testStr));
+
+        file.setInt(intFieldName, testVal);
+        file.setStr(testStr, testStr);
+
+        assertEquals(file.getInt(intFieldName), testVal);
+        assertEquals(file.getStr(testStr), testStr);
+
+        final boolean isNext = file.next();
+        assertTrue(isNext);
+
+        final RecordFile.RID currentRID = file.getCurrentRID();
+        assertEquals(rid, currentRID);
+
+        file.delete();
+        file.beforeFirst();
+
+        assertFalse(file.next());
+        tx.commit();
     }
 
 }

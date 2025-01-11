@@ -28,6 +28,7 @@ public class RecordFile {
             tx.append(tableInfo.getTableName());
             final Block block = new Block(tableInfo.getTableName(), 0);
             tx.pin(block);
+
             this.rp = new RecordPage(tableInfo, block, transaction);
             this.rp.format();
             this.currentRID = new RID(rp.getBlock().blockNumber(), 0);

@@ -1,7 +1,7 @@
 package org.berkerdb.db.record;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.function.Predicate;
 
 public class TableInfo {
@@ -37,8 +37,9 @@ public class TableInfo {
                 variableCurrentOff += Byte.BYTES;
                 continue;
             }
-            fieldNameToOffSetMap.put(f.name(), fixedCurrentOff);
+
             fixedCurrentOff += Integer.BYTES;
+            fieldNameToOffSetMap.put(f.name(), fixedCurrentOff);
         }
     }
 

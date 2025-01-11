@@ -142,7 +142,7 @@ public class Transaction {
     }
 
     public ByteBuffer setContentOfBuffer(final Block block, final ByteBuffer newBuffer) {
-        concurrencyManager.getSharedLock(block);
+        concurrencyManager.getXLock(block);
         final Buffer buffer = blockBufferMap.getOrDefault(block, bufferManager.pin(block));
 
         return buffer.setBufferContent(newBuffer);

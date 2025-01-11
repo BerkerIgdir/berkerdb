@@ -24,7 +24,6 @@ public class Schema {
         }
     }
 
-
     private int totalSize = 0;
     private final Set<Field> fieldSet = new TreeSet<>();
     private final Set<String> fieldNameSet = new HashSet<>();
