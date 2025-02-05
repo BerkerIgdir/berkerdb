@@ -5,13 +5,14 @@ import org.berkerdb.db.transaction.Transaction;
 
 import java.nio.ByteBuffer;
 import java.sql.Types;
-import java.util.List;
 import java.util.Set;
+
+import static org.berkerdb.db.file.Page.BLOCK_SIZE;
 
 // This part turned out to be more complex than I thought, thus for now we are going to continue with fixed size records.
 public class VariableRecordPage {
 
-    static final int VARIABLE_RECORD_START_OFFSET_OFF = 0;
+    static final int IS_OVERFLOWED_OFF = 0;
     static final int LOCATION_ARRAY_SIZE_OFFSET = Integer.BYTES;
     static final int LOCATION_ARRAY_BEGIN_OFF = 2 * Integer.BYTES;
 
@@ -107,7 +108,7 @@ public class VariableRecordPage {
                 }
                 final int loopCount = localBlock.blockNumber() - this.block.blockNumber();
 
-                for (int i = 0; i < loopCount ; i++) {
+                for (int i = 0; i < loopCount; i++) {
                     // TO DO: Move logic comes here.
                     // Our moving granularity is variable field, which means we do not move fields arbitrarily but only variable fields
                     // If we need to move a fixed variable due to space constraints then we do move the whole record to next block.
@@ -115,7 +116,6 @@ public class VariableRecordPage {
                     // Step 2: Move it to the next block and modify the next block accordingly.
                     // Step 3: Repeat it until the necessary fields/records are moved.
                     final int lastEntryOff = getLastEntryOff();
-
                 }
 
 //                transaction.pin(localBlock);
@@ -192,28 +192,40 @@ public class VariableRecordPage {
 
     private int getLastEntryOff() {
         final int lastArraySlotOff = getLastArrayEntryOff();
-        return transaction.getInt(block,lastArraySlotOff);
+        return transaction.getInt(block, lastArraySlotOff);
     }
+
     private int getSlotOff(final int slot) {
         final int arrayElementOff = getArrayElementOff(slot);
         return transaction.getInt(block, arrayElementOff);
     }
 
     private int getOffsetToMove(final int slot, final int neededSpace) {
+        final int lastSlotOff = getLastEntryOff();
+        final int beforeLastSlotOff = getSlotOff(getRecordCount() - 1);
+        final int lastSlotSize = beforeLastSlotOff - lastSlotOff;
+        if (neededSpace > lastSlotSize){
+          // we need to
+        }
         final int getSlotOff = getSlotOff(slot);
         final int fieldCardinality = layout.getSchema().getFieldSet().size();
         int variableOff = getSlotOff + layout.getFixedSlotSize();
 
-        int strLen;
+        int strLenToMove = 0;
         for (int i = 0; i < fieldCardinality; i++) {
-            strLen = transaction.getStr(block, variableOff).length();
+            int strLen = transaction.getStr(block, variableOff).length();
+            strLenToMove += strLen;
             variableOff += strLen;
-            if (strLen >= neededSpace){
+            if (variableOff >= BLOCK_SIZE) {
+                // This means our last record is already overflowed.
+                // break here then move the current to the
+            }
+            if (strLen >= neededSpace) {
                 break;
             }
         }
-        if (layout.getFixedSlotSize() -)
-        return variableOff;
+
+        return variableOff + strLenToMove;
     }
 
     private int getVariableOff(final int slot, final String fieldName) {
